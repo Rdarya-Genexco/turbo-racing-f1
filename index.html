@@ -539,7 +539,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .rh-time{font-family:'Space Mono',monospace;color:var(--muted);font-size:.75rem;}
 </style>
 </head>
-<body>
+<body tabindex="0">
 
 <div class="bg-fx"><div class="bg-stripe"></div><div class="bg-stripe"></div><div class="bg-stripe"></div></div>
 <div id="toast-container"></div>
@@ -782,7 +782,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div id="mlPanel"></div>
     </div>
   </div>
-  <canvas id="raceCanvas" width="1920" height="826" tabindex="-1"></canvas>
+  <canvas id="raceCanvas" width="1920" height="826"></canvas>
   <div id="minimapPanel" style="position:fixed;bottom:18px;right:18px;z-index:60;background:rgba(8,12,18,.92);border:1.5px solid rgba(255,255,255,.22);border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.7);padding:8px 10px;display:none;flex-direction:column;gap:5px;">
     <div style="font-size:.55rem;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.4);font-family:&#39;Space Mono&#39;,monospace;text-align:center;">MAP</div>
     <canvas id="minimapCanvas" width="280" height="160" style="display:block;border-radius:8px;border:1px solid rgba(255,255,255,.08);"></canvas>
@@ -2417,7 +2417,8 @@ function stopRaceLoop(){
   stopEngine();
 }
 
-window.addEventListener('keydown', function(e){
+// Use document (not window) so keys register even when canvas is clicked
+document.addEventListener('keydown', function(e){
   keys[e.key]=true;
   var prevent=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Escape'];
   if(prevent.indexOf(e.key)>=0) e.preventDefault();
@@ -2430,7 +2431,13 @@ window.addEventListener('keydown', function(e){
   }
   unlockAudio();
 });
-window.addEventListener('keyup', function(e){ keys[e.key]=false; });
+document.addEventListener('keyup', function(e){ keys[e.key]=false; });
+
+// If canvas somehow steals focus, immediately return it to body
+(function(){
+  var cv = document.getElementById('raceCanvas');
+  if(cv) cv.addEventListener('focus', function(){ document.body.focus(); }, true);
+})();
 
 // ── Audio unlock: browsers block AudioContext until first user gesture ──
 function unlockAudio(){
