@@ -395,7 +395,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 #screen-race{display:none;position:relative;width:100vw;height:100vh;overflow:hidden;background:#0a0e14;}
 #screen-race.active{display:block;}
-#raceCanvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;}
+#raceCanvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;outline:none;}
 .minimap-wrap{position:fixed;top:80px;right:18px;z-index:60;background:rgba(10,14,20,.88);border:1.5px solid rgba(255,255,255,.18);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.6);padding:10px 12px;display:none;flex-direction:column;gap:6px;min-width:220px;}
 #screen-race.active .minimap-wrap{display:flex;}
 .minimap-title{font-size:.58rem;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.45);font-family:'Space Mono',monospace;text-align:center;}
@@ -691,7 +691,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div id="mlPanel"></div>
     </div>
   </div>
-  <canvas id="raceCanvas" width="1920" height="826"></canvas>
+  <canvas id="raceCanvas" width="1920" height="826" tabindex="-1"></canvas>
   <div id="minimapPanel" style="position:fixed;bottom:18px;right:18px;z-index:60;background:rgba(8,12,18,.92);border:1.5px solid rgba(255,255,255,.22);border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.7);padding:8px 10px;display:none;flex-direction:column;gap:5px;">
     <div style="font-size:.55rem;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.4);font-family:&#39;Space Mono&#39;,monospace;text-align:center;">MAP</div>
     <canvas id="minimapCanvas" width="280" height="160" style="display:block;border-radius:8px;border:1px solid rgba(255,255,255,.08);"></canvas>
@@ -2326,8 +2326,20 @@ function stopRaceLoop(){
   stopEngine();
 }
 
-window.addEventListener('keydown', function(e){ keys[e.key]=true; var prevent=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ']; if(prevent.indexOf(e.key)>=0) e.preventDefault(); unlockAudio(); });
-window.addEventListener('keyup',   function(e){ keys[e.key]=false; });
+window.addEventListener('keydown', function(e){
+  keys[e.key]=true;
+  var prevent=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Escape'];
+  if(prevent.indexOf(e.key)>=0) e.preventDefault();
+  // Block Escape from exiting the match — show a quit prompt instead
+  if(e.key==='Escape'){
+    var onRace = document.getElementById('screen-race') && document.getElementById('screen-race').classList.contains('active');
+    if(onRace){
+      if(confirm('Leave this race and return to the menu?')){ stopRaceLoop && stopRaceLoop(); goToScreen('mode'); }
+    }
+  }
+  unlockAudio();
+});
+window.addEventListener('keyup', function(e){ keys[e.key]=false; });
 
 // ── Audio unlock: browsers block AudioContext until first user gesture ──
 function unlockAudio(){
@@ -2757,6 +2769,8 @@ function launchSoloRace(noBotsMode){
   numEl.textContent = '3';
 
   goToScreen('race');
+  // Ensure window has keyboard focus so arrow keys work immediately
+  document.body.focus();
 
   function tick(){
     var rem = startAt - Date.now();
