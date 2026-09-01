@@ -2394,20 +2394,21 @@ function beginRaceLoop(){
   if (amHost) initAIPlayers();
   lastFrameT = null;
   function loop(t){
-    if (lastFrameT===null) lastFrameT = t;
-    var dt = Math.min(2.5, (t-lastFrameT)/16.67);
-    lastFrameT = t;
+    try {
+      if (lastFrameT===null) lastFrameT = t;
+      var dt = Math.min(2.5, (t-lastFrameT)/16.67);
+      lastFrameT = t;
 
-    if (!myCar.finished) updateMyCarPhysics(dt);
-    if (amHost) updateAIPlayers(dt);
-    renderFrame(dt);
-    updateHUD();
+      if (!myCar.finished) updateMyCarPhysics(dt);
+      if (amHost) { try { updateAIPlayers(dt); } catch(e){} }
+      try { renderFrame(dt); } catch(e){}
+      try { updateHUD(); } catch(e){}
 
-    if (!myCar.finished && t - lastSyncT > 90) {
-      lastSyncT = t;
-      db.ref('races/'+racePin+'/players/'+myId).update({x:myCar.x,y:myCar.y,angle:myCar.angle,progress:myCar.progress});
-    }
-
+      if (!isSoloMode && !myCar.finished && t - lastSyncT > 90) {
+        lastSyncT = t;
+        try { db && db.ref('races/'+racePin+'/players/'+myId).update({x:myCar.x,y:myCar.y,angle:myCar.angle,progress:myCar.progress}); } catch(e){}
+      }
+    } catch(loopErr){ console.warn('race loop error:', loopErr); }
     rafId = requestAnimationFrame(loop);
   }
   rafId = requestAnimationFrame(loop);
@@ -3251,25 +3252,27 @@ beginRaceLoop = function(){
   if (amHost) initAIPlayers();
   lastFrameT = null;
   function loop(t){
-    if (lastFrameT===null) lastFrameT=t;
-    var dt = Math.min(2.5,(t-lastFrameT)/16.67);
-    lastFrameT=t;
-    if (!myCar.finished) updateMyCarPhysics(dt);
-    if (amHost) updateAIPlayers(dt);
-    renderFrame(dt);
-    updateHUD();
-    // Skip Firebase in solo mode
-    if (!isSoloMode && !myCar.finished && t-lastSyncT > 90){
-      lastSyncT=t;
-      db.ref('races/'+racePin+'/players/'+myId).update({x:myCar.x,y:myCar.y,angle:myCar.angle,progress:myCar.progress});
-    }
-    // In solo: sync AI state into cachedPlayers for getAllRacers
-    if (isSoloMode && aiPlayers){
-      Object.keys(aiPlayers).forEach(function(id){
-        var ai=aiPlayers[id];
-        if (cachedPlayers[id]){ cachedPlayers[id].x=ai.x;cachedPlayers[id].y=ai.y;cachedPlayers[id].angle=ai.angle;cachedPlayers[id].progress=ai.progress;cachedPlayers[id].finished=ai.finished;cachedPlayers[id].finishTime=ai.finishTime; }
-      });
-    }
+    try {
+      if (lastFrameT===null) lastFrameT=t;
+      var dt = Math.min(2.5,(t-lastFrameT)/16.67);
+      lastFrameT=t;
+      if (!myCar.finished) updateMyCarPhysics(dt);
+      if (amHost) { try { updateAIPlayers(dt); } catch(e){} }
+      try { renderFrame(dt); } catch(e){}
+      try { updateHUD(); } catch(e){}
+      // Skip Firebase in solo mode
+      if (!isSoloMode && !myCar.finished && t-lastSyncT > 90){
+        lastSyncT=t;
+        try { db && db.ref('races/'+racePin+'/players/'+myId).update({x:myCar.x,y:myCar.y,angle:myCar.angle,progress:myCar.progress}); } catch(e){}
+      }
+      // In solo: sync AI state into cachedPlayers for getAllRacers
+      if (isSoloMode && aiPlayers){
+        Object.keys(aiPlayers).forEach(function(id){
+          var ai=aiPlayers[id];
+          if (cachedPlayers[id]){ cachedPlayers[id].x=ai.x;cachedPlayers[id].y=ai.y;cachedPlayers[id].angle=ai.angle;cachedPlayers[id].progress=ai.progress;cachedPlayers[id].finished=ai.finished;cachedPlayers[id].finishTime=ai.finishTime; }
+        });
+      }
+    } catch(loopErr){ console.warn('race loop error:', loopErr); }
     rafId=requestAnimationFrame(loop);
   }
   rafId=requestAnimationFrame(loop);
