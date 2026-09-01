@@ -2417,27 +2417,20 @@ function stopRaceLoop(){
   stopEngine();
 }
 
-// Use document (not window) so keys register even when canvas is clicked
-document.addEventListener('keydown', function(e){
-  keys[e.key]=true;
-  var prevent=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Escape'];
-  if(prevent.indexOf(e.key)>=0) e.preventDefault();
-  // Block Escape from exiting the match — show a quit prompt instead
-  if(e.key==='Escape'){
-    var onRace = document.getElementById('screen-race') && document.getElementById('screen-race').classList.contains('active');
-    if(onRace){
-      if(confirm('Leave this race and return to the menu?')){ stopRaceLoop && stopRaceLoop(); goToScreen('mode'); }
-    }
+window.addEventListener('keydown', function(e){
+  keys[e.key] = true;
+  var raceActive = document.getElementById('screen-race') && document.getElementById('screen-race').classList.contains('active');
+  // Only prevent default scroll keys while actually racing (stops page scroll without breaking input)
+  if(raceActive && [' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.key) >= 0){
+    e.preventDefault();
+  }
+  // Escape during race: confirm before quitting
+  if(e.key === 'Escape' && raceActive){
+    if(confirm('Leave this race and return to the menu?')){ stopRaceLoop && stopRaceLoop(); goToScreen('mode'); }
   }
   unlockAudio();
 });
-document.addEventListener('keyup', function(e){ keys[e.key]=false; });
-
-// If canvas somehow steals focus, immediately return it to body
-(function(){
-  var cv = document.getElementById('raceCanvas');
-  if(cv) cv.addEventListener('focus', function(){ document.body.focus(); }, true);
-})();
+window.addEventListener('keyup', function(e){ keys[e.key] = false; });
 
 // ── Audio unlock: browsers block AudioContext until first user gesture ──
 function unlockAudio(){
@@ -2544,45 +2537,54 @@ var q3dDb  = null;
   }
 })();
 
-// Read Q3D gold for a given uid and merge into currentUserDoc
+// Q3D gold sync — reads/writes Q3D profiles/{uid} using the user's own auth session.
+// This only works when the user is signed into the SAME Firebase account in both games
+// (same email/password). If the auth session doesn't cover Q3D's project the call is
+// silently skipped — TR gold still works independently.
 function syncQ3DGold(uid, callback){
-  if (!q3dDb) { if (callback) callback(0); return; }
-  q3dDb.collection('profiles').doc(uid).get().then(function(snap){
-    var q3dGold = 0;
-    if (snap.exists){
-      var data = snap.data();
-      try {
-        var save = typeof data.save === 'string' ? JSON.parse(data.save) : (data.save || {});
-        q3dGold = typeof save.gold === 'number' ? save.gold : 0;
-      } catch(e){}
-    }
-    // Gold is the max of what each game knows — in case one is ahead
-    var trGold = currentUserDoc.gold || 0;
-    var merged = Math.max(trGold, q3dGold);
-    if (merged !== trGold){
-      currentUserDoc.gold = merged;
-      if (fsdb) fsdb.collection('users').doc(uid).update({ gold: merged }).catch(function(){});
-    }
-    if (callback) callback(merged);
-  }).catch(function(e){
-    console.warn('Q3D gold sync error:', e.message);
-    if (callback) callback(currentUserDoc.gold || 0);
-  });
+  if (!q3dDb || !q3dApp) { if (callback) callback(currentUserDoc.gold || 0); return; }
+  // Use the Q3D app's own auth to get a token — re-sign silently if possible
+  try {
+    var q3dAuth = q3dApp.auth();
+    var q3dUser = q3dAuth.currentUser;
+    if (!q3dUser){ if (callback) callback(currentUserDoc.gold || 0); return; }
+    q3dDb.collection('profiles').doc(q3dUser.uid).get().then(function(snap){
+      var q3dGold = 0;
+      if (snap.exists){
+        var data = snap.data();
+        try {
+          var save = typeof data.save === 'string' ? JSON.parse(data.save) : (data.save || {});
+          q3dGold = typeof save.gold === 'number' ? save.gold : 0;
+        } catch(e){}
+      }
+      var trGold = currentUserDoc.gold || 0;
+      var merged = Math.max(trGold, q3dGold);
+      if (merged !== trGold){
+        currentUserDoc.gold = merged;
+        if (fsdb) fsdb.collection('users').doc(uid).update({ gold: merged }).catch(function(){});
+      }
+      if (callback) callback(merged);
+    }).catch(function(){ if (callback) callback(currentUserDoc.gold || 0); });
+  } catch(e){ if (callback) callback(currentUserDoc.gold || 0); }
 }
 
 // Write gold back to Q3D after earning it in Turbo Racing
 function pushGoldToQ3D(uid, newGoldTotal){
-  if (!q3dDb) return;
-  q3dDb.collection('profiles').doc(uid).get().then(function(snap){
-    var save = {};
-    if (snap.exists){
-      var data = snap.data();
-      try { save = typeof data.save === 'string' ? JSON.parse(data.save) : (data.save || {}); } catch(e){}
-    }
-    save.gold = newGoldTotal;
-    q3dDb.collection('profiles').doc(uid).set({ save: JSON.stringify(save) }, { merge: true })
-      .catch(function(e){ console.warn('Q3D gold push error:', e.message); });
-  }).catch(function(){});
+  if (!q3dDb || !q3dApp) return;
+  try {
+    var q3dUser = q3dApp.auth().currentUser;
+    if (!q3dUser) return;
+    q3dDb.collection('profiles').doc(q3dUser.uid).get().then(function(snap){
+      var save = {};
+      if (snap.exists){
+        var data = snap.data();
+        try { save = typeof data.save === 'string' ? JSON.parse(data.save) : (data.save || {}); } catch(e){}
+      }
+      save.gold = newGoldTotal;
+      q3dDb.collection('profiles').doc(q3dUser.uid).set({ save: JSON.stringify(save) }, { merge: true })
+        .catch(function(){});
+    }).catch(function(){});
+  } catch(e){}
 }
 
 // ═══════════════════════════════════════════════
