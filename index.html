@@ -769,8 +769,9 @@ var firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
-var auth = firebase.auth();
-var fsdb = firebase.firestore();
+var auth, fsdb;
+try { auth = firebase.auth(); } catch(e){ console.warn('Firebase Auth unavailable:', e.message); }
+try { fsdb = firebase.firestore(); } catch(e){ console.warn('Firebase Firestore unavailable:', e.message); }
 
 
 
@@ -2433,7 +2434,7 @@ function updatePtsHud(){
 }
 
 // ── Auth state listener ──────────────────────
-auth.onAuthStateChanged(function(user){
+if (auth) auth.onAuthStateChanged(function(user){
   if (user){
     currentAccount = user;
     // Load Firestore doc
@@ -2737,8 +2738,10 @@ function launchSoloRace(noBotsMode){
   applyUpgrades();
   initFinishPlane();
 
-  // Re-init scene if renderer already set up (replay)
-  if (typeof renderer !== 'undefined' && renderer){
+  // Init canvas on first race; re-init scene on replay
+  if (typeof renderer === 'undefined' || !renderer){
+    initCanvas();
+  } else {
     if (scene){ while(scene.children.length) scene.remove(scene.children[0]); }
     buildRoad();
     buildEnvironment();
