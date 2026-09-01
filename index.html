@@ -500,6 +500,43 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   #mobile-boost-btn{display:flex;}
   .garage-grid{grid-template-columns:1fr;}
 }
+
+/* ── LEAGUE SCREEN ── */
+#screen-league{flex-direction:column;align-items:center;padding:20px 16px 40px;overflow-y:auto;}
+.league-header{text-align:center;margin-bottom:20px;}
+.league-header h1{font-size:1.6rem;font-weight:900;letter-spacing:2px;margin:0 0 4px;}
+.tier-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:30px;font-family:'Space Mono',monospace;font-weight:700;font-size:.85rem;letter-spacing:1px;text-transform:uppercase;border:2px solid;margin-bottom:12px;}
+.tier-rookie  {background:rgba(120,120,120,.15);border-color:#888;color:#bbb;}
+.tier-bronze  {background:rgba(176,101,35,.15);border-color:#b06523;color:#e88a45;}
+.tier-silver  {background:rgba(160,170,190,.15);border-color:#a0aabd;color:#c8d0e0;}
+.tier-gold    {background:rgba(227,179,65,.15);border-color:var(--gold);color:var(--gold);}
+.tier-champion{background:rgba(163,113,247,.2);border-color:var(--purple);color:#c99fff;}
+.tier-progress-wrap{width:100%;max-width:380px;margin:0 auto 6px;}
+.tier-progress-bar{height:8px;border-radius:4px;background:var(--surface2);overflow:hidden;margin-top:4px;}
+.tier-progress-fill{height:100%;border-radius:4px;transition:width .6s ease;}
+.season-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 18px;width:100%;max-width:420px;margin-bottom:14px;}
+.season-card-title{font-size:.65rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;font-family:'Space Mono',monospace;margin-bottom:10px;}
+.season-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;}
+.season-stat-val{font-size:1.5rem;font-weight:900;font-family:'Space Mono',monospace;color:var(--accent-bright);}
+.season-stat-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.gold-card{background:linear-gradient(135deg,rgba(227,179,65,.12),rgba(163,113,247,.12));border:1px solid var(--gold);border-radius:14px;padding:14px 18px;width:100%;max-width:420px;margin-bottom:14px;display:flex;align-items:center;gap:16px;}
+.gold-icon{font-size:2rem;}
+.gold-amount{font-size:1.8rem;font-weight:900;font-family:'Space Mono',monospace;color:var(--gold);}
+.gold-label{font-size:.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.leaderboard-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 18px;width:100%;max-width:420px;margin-bottom:14px;}
+.lb-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);}
+.lb-row:last-child{border-bottom:none;}
+.lb-rank{font-family:'Space Mono',monospace;font-size:.8rem;color:var(--muted);width:22px;text-align:center;}
+.lb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.lb-name{flex:1;font-size:.88rem;font-weight:700;}
+.lb-pts{font-family:'Space Mono',monospace;font-size:.82rem;color:var(--accent-bright);}
+.lb-tier{font-size:.65rem;padding:2px 7px;border-radius:10px;border:1px solid;margin-left:4px;}
+.race-history-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 18px;width:100%;max-width:420px;margin-bottom:20px;}
+.rh-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:.82rem;}
+.rh-row:last-child{border-bottom:none;}
+.rh-place{font-size:1rem;width:24px;text-align:center;}
+.rh-pts{font-family:'Space Mono',monospace;color:var(--accent);margin-left:auto;}
+.rh-time{font-family:'Space Mono',monospace;color:var(--muted);font-size:.75rem;}
 </style>
 </head>
 <body>
@@ -548,8 +585,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div class="screen" id="screen-mode">
   <div class="home-logo" style="width:60px;height:60px;font-size:1.6rem;margin-bottom:16px">🏎️</div>
   <h1 class="home-title" style="font-size:1.8rem">Turbo Lap</h1>
-  <p class="home-tagline" style="margin-bottom:4px">Signed in as <strong id="modeUsername">—</strong></p>
-  <p class="home-tagline" style="margin-bottom:20px;color:var(--gold);font-family:'Space Mono'">🏆 <span id="modePts">0</span> pts</p>
+  <p class="home-tagline" style="margin-bottom:4px">Signed in as <strong id="modeUsername">—</strong> &nbsp;<span id="modeTierBadge" class="tier-badge tier-rookie" style="padding:3px 10px;font-size:.65rem;margin-bottom:0;vertical-align:middle"></span></p>
+  <p class="home-tagline" style="margin-bottom:20px;color:var(--gold);font-family:'Space Mono'">🏆 <span id="modePts">0</span> pts &nbsp;|&nbsp; 💎 <span id="modeGold">0</span> Gold</p>
   <button class="mode-btn primary" onclick="startVsBots()">
     <span class="m-icon">🤖</span>
     <span class="m-text"><span class="m-label">vs Bots</span><span class="m-sub">Race 3 bots · 1st=25 · 2nd=15 · 3rd=10 · 4th=5 pts</span></span>
@@ -566,6 +603,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <span class="m-icon">🔧</span>
     <span class="m-text"><span class="m-label">Garage</span><span class="m-sub">Upgrade your car with points</span></span>
   </button>
+  <button class="mode-btn" onclick="goToScreen('league')">
+    <span class="m-icon">🏅</span>
+    <span class="m-text"><span class="m-label">League</span><span class="m-sub">Season standings · Leaderboard · Race history</span></span>
+  </button>
   <button class="mode-btn" onclick="doSignOut()" style="border-color:var(--border)">
     <span class="m-icon" style="font-size:1.3rem">🚪</span>
     <span class="m-text"><span class="m-label" style="font-size:.9rem">Sign Out</span><span class="m-sub">Switch account</span></span>
@@ -581,6 +622,56 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <div class="garage-grid" id="upgradeGrid"></div>
   <button class="mode-btn" onclick="goTo('mode')" style="max-width:420px">
     <span class="m-icon" style="font-size:1.3rem">←</span><span class="m-text"><span class="m-label">Back to Menu</span></span>
+  </button>
+</div>
+
+<!-- LEAGUE SCREEN -->
+<div class="screen" id="screen-league">
+  <div class="league-header">
+    <h1>🏅 Racing League</h1>
+    <div id="leagueTierBadge" class="tier-badge tier-rookie">🥉 Rookie</div>
+    <div class="tier-progress-wrap">
+      <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);font-family:'Space Mono'">
+        <span id="leaguePtsLabel">0 pts</span><span id="leagueNextLabel">Next: Bronze at 100</span>
+      </div>
+      <div class="tier-progress-bar"><div class="tier-progress-fill" id="leagueTierFill" style="width:0%;background:var(--accent)"></div></div>
+    </div>
+  </div>
+
+  <!-- Gold balance -->
+  <div class="gold-card">
+    <div class="gold-icon">💎</div>
+    <div>
+      <div class="gold-amount" id="leagueGoldAmt">0</div>
+      <div class="gold-label">Quidditch3D Gold · shared wallet</div>
+    </div>
+    <div style="margin-left:auto;text-align:right;font-size:.7rem;color:var(--muted)">Earn 1 Gold<br>per 5 race pts</div>
+  </div>
+
+  <!-- Season stats -->
+  <div class="season-card">
+    <div class="season-card-title">📅 <span id="leagueSeasonLabel">Season</span></div>
+    <div class="season-stats">
+      <div><div class="season-stat-val" id="leagueSeasonPts">0</div><div class="season-stat-lbl">Season pts</div></div>
+      <div><div class="season-stat-val" id="leagueTotalRaces">0</div><div class="season-stat-lbl">Total races</div></div>
+      <div><div class="season-stat-val" id="leagueTotalWins">0</div><div class="season-stat-lbl">🏆 Wins</div></div>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="leaderboard-card">
+    <div class="season-card-title">🌍 Season leaderboard <span style="font-size:.6rem;color:var(--muted)" id="lbSeasonTag"></span></div>
+    <div id="leaderboardList"><div style="text-align:center;color:var(--muted);padding:14px;font-size:.85rem">Loading…</div></div>
+  </div>
+
+  <!-- Race history -->
+  <div class="race-history-card">
+    <div class="season-card-title">📋 Recent races</div>
+    <div id="raceHistoryList"><div style="text-align:center;color:var(--muted);padding:14px;font-size:.85rem">No races yet</div></div>
+  </div>
+
+  <button class="mode-btn" onclick="goToScreen('mode')" style="max-width:420px">
+    <span class="m-icon" style="font-size:1.2rem">←</span><span class="m-text"><span class="m-label">Back to Menu</span></span>
   </button>
 </div>
 
@@ -2547,6 +2638,7 @@ function doSignOut(){
 function enterModeScreen(){
   var el = document.getElementById('modeUsername'); if (el) el.textContent = myName || (currentAccount && currentAccount.email ? currentAccount.email.split('@')[0] : '—');
   updatePtsHud();
+  updateTierHud();
   var ttEl = document.getElementById('ttBestDisplay');
   if (ttEl) ttEl.textContent = currentUserDoc.ttBest ? 'Best: ' + formatTime(currentUserDoc.ttBest) : '';
   goToScreen('mode');
@@ -2613,7 +2705,18 @@ function goToScreen(name){
   var target = document.getElementById('screen-'+name);
   if (target) target.classList.add('active');
   if (name === 'garage') renderGarage();
+  if (name === 'league') renderLeagueScreen();
   if (name === 'mode'){ updatePtsHud(); var ttEl2=document.getElementById('ttBestDisplay'); if(ttEl2){ ttEl2.textContent=currentUserDoc.ttBest?'Best: '+formatTime(currentUserDoc.ttBest):''; } }
+  // Init or re-init the 3D canvas whenever the race screen is shown
+  if (name === 'race'){
+    if (typeof renderer === 'undefined' || !renderer){
+      initCanvas();
+    } else if (scene && !isSoloMode){
+      // Multiplayer replay: clear and rebuild scene
+      while(scene.children.length) scene.remove(scene.children[0]);
+      buildRoad(); buildEnvironment();
+    }
+  }
   // Hide joystick when not racing
   showJoystick(name === 'race');
   // host-only elements
@@ -2637,6 +2740,223 @@ goTo = function(name){
     goToScreen(name); // re-assert correct screen
   }
 };
+
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// LEAGUE SYSTEM
+// ═══════════════════════════════════════════════
+
+var TIERS = [
+  { id:'rookie',   label:'Rookie',   icon:'🥉', min:0,    max:99,   color:'#888',    fill:'#888' },
+  { id:'bronze',   label:'Bronze',   icon:'🥈', min:100,  max:299,  color:'#b06523', fill:'#e88a45' },
+  { id:'silver',   label:'Silver',   icon:'🥇', min:300,  max:699,  color:'#a0aabd', fill:'#c8d0e0' },
+  { id:'gold',     label:'Gold',     icon:'🏆', min:700,  max:1499, color:'#e3b341', fill:'#ffd966' },
+  { id:'champion', label:'Champion', icon:'👑', min:1500, max:Infinity, color:'#a371f7', fill:'#c99fff' },
+];
+// Gold is shared with Quidditch3D — 1 Gold per 5 race points
+var GOLD_RATIO = 5;
+
+function getCurrentSeasonId(){
+  var now = new Date();
+  var yr  = now.getFullYear();
+  var startOfYear = new Date(yr, 0, 1);
+  var week = Math.floor((now - startOfYear) / (7*24*3600*1000));
+  var season = Math.floor(week / 4) + 1;
+  return yr + '-S' + season;
+}
+
+function getSeasonLabel(){
+  var id = getCurrentSeasonId();
+  var parts = id.split('-S');
+  return 'Season ' + parts[1] + ' · ' + parts[0];
+}
+
+function getTier(totalPoints){
+  for (var i = TIERS.length - 1; i >= 0; i--){
+    if (totalPoints >= TIERS[i].min) return TIERS[i];
+  }
+  return TIERS[0];
+}
+
+function getNextTier(totalPoints){
+  var t = getTier(totalPoints);
+  var idx = TIERS.findIndex(function(x){ return x.id === t.id; });
+  return idx < TIERS.length - 1 ? TIERS[idx + 1] : null;
+}
+
+function updateTierHud(){
+  var pts = currentUserDoc.careerPts || 0;
+  var tier = getTier(pts);
+  var next = getNextTier(pts);
+  // mode screen badge
+  var badge = document.getElementById('modeTierBadge');
+  if (badge){
+    badge.textContent = tier.icon + ' ' + tier.label;
+    badge.className = 'tier-badge tier-' + tier.id;
+  }
+  // gold on mode screen
+  var goldEl = document.getElementById('modeGold');
+  if (goldEl) goldEl.textContent = currentUserDoc.gold || 0;
+  // progress bar
+  if (next){
+    var progress = Math.round(((pts - tier.min) / (next.min - tier.min)) * 100);
+    var fill = document.getElementById('leagueTierFill');
+    if (fill){ fill.style.width = Math.min(100, progress) + '%'; fill.style.background = tier.fill; }
+  }
+}
+
+function recordRaceInHistory(place, pts, time, mode){
+  if (!currentAccount) return;
+  var placeIcons = ['🥇','🥈','🥉','4️⃣'];
+  var entry = {
+    place: place + 1,
+    icon: placeIcons[Math.min(place, 3)],
+    pts: pts,
+    time: time,
+    mode: mode || 'vsbots',
+    ts: Date.now()
+  };
+  var history = currentUserDoc.raceHistory ? currentUserDoc.raceHistory.slice() : [];
+  history.unshift(entry);
+  if (history.length > 10) history = history.slice(0, 10);
+  currentUserDoc.raceHistory = history;
+  if (fsdb) fsdb.collection('users').doc(currentAccount.uid).update({ raceHistory: history }).catch(function(){});
+}
+
+function updateLeagueAfterRace(place, ptsEarned){
+  if (!currentAccount || !fsdb) return;
+  var seasonId = getCurrentSeasonId();
+  var careerPts = (currentUserDoc.careerPts || 0) + ptsEarned;
+  var seasonPts = (currentUserDoc.seasonPts || 0) + ptsEarned;
+  // check if season changed
+  if (currentUserDoc.currentSeason !== seasonId){
+    seasonPts = ptsEarned;
+  }
+  var totalRaces = (currentUserDoc.totalRaces || 0) + 1;
+  var totalWins  = (currentUserDoc.totalWins  || 0) + (place === 0 ? 1 : 0);
+  var goldEarned = Math.floor(ptsEarned / GOLD_RATIO);
+  var gold = (currentUserDoc.gold || 0) + goldEarned;
+
+  // update local
+  currentUserDoc.careerPts     = careerPts;
+  currentUserDoc.seasonPts     = seasonPts;
+  currentUserDoc.currentSeason = seasonId;
+  currentUserDoc.totalRaces    = totalRaces;
+  currentUserDoc.totalWins     = totalWins;
+  currentUserDoc.gold          = gold;
+
+  // write user doc
+  fsdb.collection('users').doc(currentAccount.uid).update({
+    careerPts: careerPts, seasonPts: seasonPts, currentSeason: seasonId,
+    totalRaces: totalRaces, totalWins: totalWins, gold: gold
+  }).catch(function(e){ console.warn('league update error', e); });
+
+  // write season leaderboard entry
+  var tier = getTier(careerPts);
+  fsdb.collection('seasons').doc(seasonId).collection('standings').doc(currentAccount.uid).set({
+    displayName: myName, color: myColor, tier: tier.id,
+    seasonPts: seasonPts, totalRaces: totalRaces, totalWins: totalWins,
+    uid: currentAccount.uid, ts: Date.now()
+  }).catch(function(e){ console.warn('standings write error', e); });
+
+  updateTierHud();
+  if (goldEarned > 0) showToast('+' + goldEarned + ' 💎 Gold earned!', 'success');
+}
+
+function loadLeaderboard(seasonId){
+  if (!fsdb){ renderLeaderboard([]); return; }
+  fsdb.collection('seasons').doc(seasonId).collection('standings')
+    .orderBy('seasonPts','desc').limit(20)
+    .get().then(function(snap){
+      var rows = [];
+      snap.forEach(function(doc){ rows.push(doc.data()); });
+      renderLeaderboard(rows, seasonId);
+    }).catch(function(){ renderLeaderboard([]); });
+}
+
+function renderLeaderboard(rows, seasonId){
+  var el = document.getElementById('leaderboardList');
+  if (!el) return;
+  var tag = document.getElementById('lbSeasonTag');
+  if (tag && seasonId) tag.textContent = '· ' + seasonId;
+  if (!rows.length){ el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:.85rem">No races this season yet</div>'; return; }
+  var myUid = currentAccount ? currentAccount.uid : '';
+  el.innerHTML = rows.map(function(r, i){
+    var tier = getTier(r.careerPts || 0);
+    var isMe = r.uid === myUid;
+    var rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
+    return '<div class="lb-row" style="'+(isMe?'background:rgba(255,107,53,.06);border-radius:8px;':'')+'">'
+      + '<span class="lb-rank">' + rankEmoji + '</span>'
+      + '<span class="lb-dot" style="background:' + (r.color||'#888') + '"></span>'
+      + '<span class="lb-name">' + (r.displayName||'?') + (isMe?' <small style="color:var(--muted)">(you)</small>':'') + '</span>'
+      + '<span class="lb-tier tier-'+tier.id+'">' + tier.icon + '</span>'
+      + '<span class="lb-pts">' + (r.seasonPts||0) + ' pts</span>'
+      + '</div>';
+  }).join('');
+}
+
+function renderRaceHistory(){
+  var el = document.getElementById('raceHistoryList');
+  if (!el) return;
+  var history = currentUserDoc.raceHistory || [];
+  if (!history.length){ el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:.85rem">No races yet — hit the track!</div>'; return; }
+  el.innerHTML = history.map(function(r){
+    var modeLabel = r.mode === 'timetrial' ? '⏱ Time Trial' : r.mode === 'multiplayer' ? '🌐 Multiplayer' : '🤖 vs Bots';
+    var timeStr = r.time ? formatTime(r.time) : '—';
+    return '<div class="rh-row">'
+      + '<span class="rh-place">' + (r.icon||r.place) + '</span>'
+      + '<span style="flex:1">' + modeLabel + '</span>'
+      + '<span class="rh-time">' + timeStr + '</span>'
+      + '<span class="rh-pts">+' + (r.pts||0) + 'pts</span>'
+      + '</div>';
+  }).join('');
+}
+
+function renderLeagueScreen(){
+  var pts = currentUserDoc.careerPts || 0;
+  var tier = getTier(pts);
+  var next = getNextTier(pts);
+  var seasonId = getCurrentSeasonId();
+
+  // Tier badge
+  var badge = document.getElementById('leagueTierBadge');
+  if (badge){ badge.textContent = tier.icon + ' ' + tier.label; badge.className = 'tier-badge tier-' + tier.id; }
+
+  // Progress bar
+  var ptsLabel = document.getElementById('leaguePtsLabel');
+  var nextLabel = document.getElementById('leagueNextLabel');
+  var fill = document.getElementById('leagueTierFill');
+  if (ptsLabel) ptsLabel.textContent = pts + ' pts';
+  if (next){
+    var progress = Math.round(((pts - tier.min) / (next.min - tier.min)) * 100);
+    if (nextLabel) nextLabel.textContent = 'Next: ' + next.label + ' at ' + next.min;
+    if (fill){ fill.style.width = Math.min(100, progress) + '%'; fill.style.background = tier.fill; }
+  } else {
+    if (nextLabel) nextLabel.textContent = '👑 Max tier reached!';
+    if (fill){ fill.style.width = '100%'; fill.style.background = tier.fill; }
+  }
+
+  // Gold
+  var goldAmt = document.getElementById('leagueGoldAmt');
+  if (goldAmt) goldAmt.textContent = currentUserDoc.gold || 0;
+
+  // Season stats
+  var seasonPts = currentUserDoc.currentSeason === seasonId ? (currentUserDoc.seasonPts || 0) : 0;
+  var slabel = document.getElementById('leagueSeasonLabel');
+  if (slabel) slabel.textContent = getSeasonLabel();
+  var sSpts = document.getElementById('leagueSeasonPts');
+  if (sSpts) sSpts.textContent = seasonPts;
+  var sTR = document.getElementById('leagueTotalRaces');
+  if (sTR) sTR.textContent = currentUserDoc.totalRaces || 0;
+  var sTW = document.getElementById('leagueTotalWins');
+  if (sTW) sTW.textContent = currentUserDoc.totalWins || 0;
+
+  // Race history
+  renderRaceHistory();
+
+  // Leaderboard (async)
+  loadLeaderboard(seasonId);
+}
 
 // ═══════════════════════════════════════════════
 // POINTS SYSTEM OVERRIDE
@@ -2685,6 +3005,8 @@ showResults = function(){
       var numEl = document.getElementById('ptsEarnedNum'); if (numEl) numEl.textContent = '+' + earned;
       var totEl = document.getElementById('ptsTotalNum'); if (totEl) totEl.textContent = getMyPoints() + earned;
     }
+    updateLeagueAfterRace(myPlace, earned);
+    recordRaceInHistory(myPlace, earned, myCar ? myCar.finishTime : 0, gameMode);
   }
 
   var icons = ['🥇','🥈','🥉','4️⃣'];
@@ -2750,13 +3072,10 @@ function launchSoloRace(noBotsMode){
   applyUpgrades();
   initFinishPlane();
 
-  // Init canvas on first race; re-init scene on replay
-  if (typeof renderer === 'undefined' || !renderer){
-    initCanvas();
-  } else {
-    if (scene){ while(scene.children.length) scene.remove(scene.children[0]); }
-    buildRoad();
-    buildEnvironment();
+  // Canvas init is handled by goToScreen('race') — just reset scene for replay
+  if (typeof renderer !== 'undefined' && renderer && scene){
+    while(scene.children.length) scene.remove(scene.children[0]);
+    buildRoad(); buildEnvironment();
   }
   initAIPlayers();
 
