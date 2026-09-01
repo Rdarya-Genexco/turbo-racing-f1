@@ -2512,6 +2512,73 @@ var currentAccount = null; // Firebase User object
 var currentUserDoc = {};   // Firestore data: { points, upgrades, color, displayName, ttBest }
 
 // ═══════════════════════════════════════════════
+// QUIDDITCH3D GOLD BRIDGE — second Firebase app
+// Q3D stores gold inside profiles/{uid}.save (JSON)
+// We read it on login and write back when gold is earned
+// ═══════════════════════════════════════════════
+var Q3D_CONFIG = {
+  apiKey:            'AIzaSyAa0NMCR5e-pmTGEno9oXt90QwiMP_uP3s',
+  authDomain:        'quidditch-8c192.firebaseapp.com',
+  projectId:         'quidditch-8c192',
+  storageBucket:     'quidditch-8c192.appspot.com',
+  messagingSenderId: '209890253986',
+  appId:             '1:209890253986:web:q3d'
+};
+var q3dApp = null;
+var q3dDb  = null;
+(function(){
+  try {
+    // Use a named app so it doesn't collide with the primary firebase app
+    var existing = firebase.apps ? firebase.apps.find(function(a){ return a.name === 'q3d'; }) : null;
+    q3dApp = existing || firebase.initializeApp(Q3D_CONFIG, 'q3d');
+    q3dDb  = q3dApp.firestore();
+  } catch(e) {
+    console.warn('Q3D bridge init failed:', e.message);
+  }
+})();
+
+// Read Q3D gold for a given uid and merge into currentUserDoc
+function syncQ3DGold(uid, callback){
+  if (!q3dDb) { if (callback) callback(0); return; }
+  q3dDb.collection('profiles').doc(uid).get().then(function(snap){
+    var q3dGold = 0;
+    if (snap.exists){
+      var data = snap.data();
+      try {
+        var save = typeof data.save === 'string' ? JSON.parse(data.save) : (data.save || {});
+        q3dGold = typeof save.gold === 'number' ? save.gold : 0;
+      } catch(e){}
+    }
+    // Gold is the max of what each game knows — in case one is ahead
+    var trGold = currentUserDoc.gold || 0;
+    var merged = Math.max(trGold, q3dGold);
+    if (merged !== trGold){
+      currentUserDoc.gold = merged;
+      if (fsdb) fsdb.collection('users').doc(uid).update({ gold: merged }).catch(function(){});
+    }
+    if (callback) callback(merged);
+  }).catch(function(e){
+    console.warn('Q3D gold sync error:', e.message);
+    if (callback) callback(currentUserDoc.gold || 0);
+  });
+}
+
+// Write gold back to Q3D after earning it in Turbo Racing
+function pushGoldToQ3D(uid, newGoldTotal){
+  if (!q3dDb) return;
+  q3dDb.collection('profiles').doc(uid).get().then(function(snap){
+    var save = {};
+    if (snap.exists){
+      var data = snap.data();
+      try { save = typeof data.save === 'string' ? JSON.parse(data.save) : (data.save || {}); } catch(e){}
+    }
+    save.gold = newGoldTotal;
+    q3dDb.collection('profiles').doc(uid).set({ save: JSON.stringify(save) }, { merge: true })
+      .catch(function(e){ console.warn('Q3D gold push error:', e.message); });
+  }).catch(function(){});
+}
+
+// ═══════════════════════════════════════════════
 // ACCOUNT SYSTEM (Firebase Auth + Firestore)
 // ═══════════════════════════════════════════════
 
@@ -2551,7 +2618,9 @@ if (auth) auth.onAuthStateChanged(function(user){
       }
       myName  = currentUserDoc.displayName || user.displayName || user.email.split('@')[0];
       myColor = currentUserDoc.color || myColor || '#ff4d4d';
-      applyUpgrades(); updatePtsHud(); enterModeScreen();
+      applyUpgrades(); updatePtsHud();
+      // Sync gold from Quidditch3D before showing mode screen
+      syncQ3DGold(user.uid, function(){ updateTierHud(); enterModeScreen(); });
     }).catch(function(e){
       console.warn('Firestore load error', e);
       currentUserDoc = {};
@@ -2860,7 +2929,11 @@ function updateLeagueAfterRace(place, ptsEarned){
   }).catch(function(e){ console.warn('standings write error', e); });
 
   updateTierHud();
-  if (goldEarned > 0) showToast('+' + goldEarned + ' 💎 Gold earned!', 'success');
+  if (goldEarned > 0){
+    showToast('+' + goldEarned + ' 💎 Gold earned!', 'success');
+    // Push updated gold total back to Quidditch3D wallet
+    pushGoldToQ3D(currentAccount.uid, gold);
+  }
 }
 
 function loadLeaderboard(seasonId){
