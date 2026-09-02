@@ -490,14 +490,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .upgrade-buy.maxed-btn{background:rgba(227,179,65,.1);border-color:var(--gold);color:var(--gold);cursor:default;}
 .garage-pts{text-align:center;font-size:1.1rem;font-weight:800;color:var(--gold);font-family:'Space Mono';margin-bottom:4px;}
 .hud-pts{background:rgba(227,179,65,.15);border:1px solid var(--gold);border-radius:8px;padding:4px 10px;color:var(--gold);font-family:'Space Mono';font-size:.75rem;font-weight:700;display:flex;align-items:center;gap:4px;}
-#joystick-zone{position:fixed;left:20px;bottom:30px;z-index:150;touch-action:none;display:none;}
-#joystick-base{width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.08);border:2.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;position:relative;}
-#joystick-thumb{width:44px;height:44px;border-radius:50%;background:rgba(255,107,53,.75);border:2px solid rgba(255,107,53,.9);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 2px 12px rgba(255,107,53,.4);}
-#mobile-boost-btn{position:fixed;right:28px;bottom:38px;z-index:150;display:none;width:64px;height:64px;border-radius:50%;background:rgba(163,113,247,.2);border:2.5px solid var(--purple);color:var(--purple);font-size:1.4rem;font-family:'Space Mono';font-weight:800;align-items:center;justify-content:center;cursor:pointer;touch-action:none;user-select:none;}
+
+
+
+
 .tt-best{font-size:.72rem;color:var(--muted);font-family:'Space Mono';margin-top:2px;}
 @media(max-width:700px){
-  #joystick-zone{display:block;}
-  #mobile-boost-btn{display:flex;}
+  
+  
   .garage-grid{grid-template-columns:1fr;}
 }
 
@@ -548,9 +548,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <!-- Points HUD badge -->
 <div id="pts-hud">🏆 <span id="ptsDisplay">0</span> <span style="font-size:.7rem;color:rgba(227,179,65,.6);margin-left:2px">pts</span></div>
 
-<!-- Mobile joystick -->
-<div id="joystick-zone"><div id="joystick-base"><div id="joystick-thumb"></div></div></div>
-<div id="mobile-boost-btn">⚡</div>
 
 <!-- LOGIN SCREEN -->
 <div class="screen active" id="screen-login">
@@ -582,6 +579,41 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 <!-- MODE SELECT SCREEN -->
+<div class="screen" id="screen-race">
+  <div class="race-hud">
+    <div class="hud-panel">
+      <div class="hud-stat"><div class="hud-stat-label">Distance</div><div class="hud-stat-value" id="lapDisplay">0%</div></div>
+      <div class="hud-stat"><div class="hud-stat-label">Pos</div><div class="hud-rank" id="rankDisplay">1st</div></div>
+      <div class="hud-pts">🏆 <span id="hudPtsVal">0</span></div>
+      <div class="hud-stat"><div class="hud-stat-label">Speed</div><div class="hud-stat-value" id="speedDisplay">0</div></div>
+      <div class="hud-stat">
+        <div class="hud-stat-label">Boost <span style="color:var(--muted);font-size:.5rem">[SPACE]</span></div>
+        <div style="width:80px;height:10px;background:rgba(255,255,255,.12);border-radius:5px;overflow:hidden;margin-top:2px">
+          <div id="boostBar" style="height:100%;width:100%;background:linear-gradient(90deg,#ff6b35,#ffcc00);border-radius:5px;transition:width .1s"></div>
+        </div>
+        <div id="boostLabel" style="font-size:.6rem;color:#ff8557;font-family:&#39;Space Mono&#39;;margin-top:2px;text-align:center">READY</div>
+      </div>
+    </div>
+    <div class="minileaderboard">
+      <div class="ml-title">Standings</div>
+      <div id="mlPanel"></div>
+    </div>
+  </div>
+  <canvas id="raceCanvas" width="1920" height="826"></canvas>
+  <div id="minimapPanel" style="position:fixed;bottom:18px;right:18px;z-index:60;background:rgba(8,12,18,.92);border:1.5px solid rgba(255,255,255,.22);border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.7);padding:8px 10px;display:none;flex-direction:column;gap:5px;">
+    <div style="font-size:.55rem;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.4);font-family:&#39;Space Mono&#39;,monospace;text-align:center;">MAP</div>
+    <canvas id="minimapCanvas" width="280" height="160" style="display:block;border-radius:8px;border:1px solid rgba(255,255,255,.08);"></canvas>
+    <div id="minimapLegend" style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:1px;"></div>
+  </div>
+  <div class="checkpoint-flash" id="checkpointFlash">CHECKPOINT!</div>
+  <div class="countdown-overlay" id="countdownOverlay">
+    <div class="countdown-num" id="countdownNum">3</div>
+  </div>
+  <div class="finish-banner" id="finishBanner">
+    <div class="finish-place" id="finishPlace">🏆 1st!</div>
+    <div class="finish-time" id="finishTime">0:00.00</div>
+  </div>
+</div>
 <div class="screen" id="screen-mode">
   <div class="home-logo" style="width:60px;height:60px;font-size:1.6rem;margin-bottom:16px">🏎️</div>
   <h1 class="home-title" style="font-size:1.8rem">Turbo Lap</h1>
@@ -759,42 +791,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
     <button class="btn-start host-only" data-host-display="flex" onclick="startCountdown()" style="display: none;">🏁 Start Race</button>
     <button class="btn-leave" onclick="leaveRace()">⬧ Leave Lobby</button>
-  </div>
-</div>
-
-<div class="screen" id="screen-race">
-  <div class="race-hud">
-    <div class="hud-panel">
-      <div class="hud-stat"><div class="hud-stat-label">Distance</div><div class="hud-stat-value" id="lapDisplay">0%</div></div>
-      <div class="hud-stat"><div class="hud-stat-label">Pos</div><div class="hud-rank" id="rankDisplay">1st</div></div>
-      <div class="hud-pts">🏆 <span id="hudPtsVal">0</span></div>
-      <div class="hud-stat"><div class="hud-stat-label">Speed</div><div class="hud-stat-value" id="speedDisplay">0</div></div>
-      <div class="hud-stat">
-        <div class="hud-stat-label">Boost <span style="color:var(--muted);font-size:.5rem">[SPACE]</span></div>
-        <div style="width:80px;height:10px;background:rgba(255,255,255,.12);border-radius:5px;overflow:hidden;margin-top:2px">
-          <div id="boostBar" style="height:100%;width:100%;background:linear-gradient(90deg,#ff6b35,#ffcc00);border-radius:5px;transition:width .1s"></div>
-        </div>
-        <div id="boostLabel" style="font-size:.6rem;color:#ff8557;font-family:&#39;Space Mono&#39;;margin-top:2px;text-align:center">READY</div>
-      </div>
-    </div>
-    <div class="minileaderboard">
-      <div class="ml-title">Standings</div>
-      <div id="mlPanel"></div>
-    </div>
-  </div>
-  <canvas id="raceCanvas" width="1920" height="826"></canvas>
-  <div id="minimapPanel" style="position:fixed;bottom:18px;right:18px;z-index:60;background:rgba(8,12,18,.92);border:1.5px solid rgba(255,255,255,.22);border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.7);padding:8px 10px;display:none;flex-direction:column;gap:5px;">
-    <div style="font-size:.55rem;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.4);font-family:&#39;Space Mono&#39;,monospace;text-align:center;">MAP</div>
-    <canvas id="minimapCanvas" width="280" height="160" style="display:block;border-radius:8px;border:1px solid rgba(255,255,255,.08);"></canvas>
-    <div id="minimapLegend" style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:1px;"></div>
-  </div>
-  <div class="checkpoint-flash" id="checkpointFlash">CHECKPOINT!</div>
-  <div class="countdown-overlay" id="countdownOverlay">
-    <div class="countdown-num" id="countdownNum">3</div>
-  </div>
-  <div class="finish-banner" id="finishBanner">
-    <div class="finish-place" id="finishPlace">🏆 1st!</div>
-    <div class="finish-time" id="finishTime">0:00.00</div>
   </div>
 </div>
 
@@ -2529,10 +2525,11 @@ var q3dApp = null;
 var q3dDb  = null;
 (function(){
   try {
-    // Use a named app so it doesn't collide with the primary firebase app
+    if (typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
     var existing = firebase.apps ? firebase.apps.find(function(a){ return a.name === 'q3d'; }) : null;
     q3dApp = existing || firebase.initializeApp(Q3D_CONFIG, 'q3d');
-    q3dDb  = q3dApp.firestore();
+    // compat SDK: pass the named app to firebase.firestore() to get its db
+    q3dDb  = firebase.firestore(q3dApp);
   } catch(e) {
     console.warn('Q3D bridge init failed:', e.message);
   }
@@ -2546,7 +2543,7 @@ function syncQ3DGold(uid, callback){
   if (!q3dDb || !q3dApp) { if (callback) callback(currentUserDoc.gold || 0); return; }
   // Use the Q3D app's own auth to get a token — re-sign silently if possible
   try {
-    var q3dAuth = q3dApp.auth();
+    var q3dAuth = firebase.auth(q3dApp);
     var q3dUser = q3dAuth.currentUser;
     if (!q3dUser){ if (callback) callback(currentUserDoc.gold || 0); return; }
     q3dDb.collection('profiles').doc(q3dUser.uid).get().then(function(snap){
@@ -2573,7 +2570,7 @@ function syncQ3DGold(uid, callback){
 function pushGoldToQ3D(uid, newGoldTotal){
   if (!q3dDb || !q3dApp) return;
   try {
-    var q3dUser = q3dApp.auth().currentUser;
+    var q3dUser = firebase.auth(q3dApp).currentUser;
     if (!q3dUser) return;
     q3dDb.collection('profiles').doc(q3dUser.uid).get().then(function(snap){
       var save = {};
@@ -2796,8 +2793,6 @@ function goToScreen(name){
       buildRoad(); buildEnvironment();
     }
   }
-  // Hide joystick when not racing
-  showJoystick(name === 'race');
   // host-only elements
   document.querySelectorAll('.host-only').forEach(function(el){ el.style.display = amHost ? (el.dataset.hostDisplay || 'block') : 'none'; });
   // minimap
@@ -3336,53 +3331,7 @@ joinRoom = function(){
   _origJoinRoom();
 };
 
-// ═══════════════════════════════════════════════
-// MOBILE JOYSTICK
-// ═══════════════════════════════════════════════
-var joystickDx=0, joystickDy=0, joystickTouchId=null, boostTouch=false;
 
-function showJoystick(show){
-  var jz=document.getElementById('joystick-zone');
-  var bb=document.getElementById('mobile-boost-btn');
-  if (jz) jz.style.display = show?'block':'none';
-  if (bb) bb.style.display = show?'flex':'none';
-}
-
-(function setupJoystick(){
-  var base=document.getElementById('joystick-base');
-  var thumb=document.getElementById('joystick-thumb');
-  var bBtn=document.getElementById('mobile-boost-btn');
-  if (!base||!thumb) return;
-  var R=44, tR=22;
-  function updateJoy(touch){
-    var rect=base.getBoundingClientRect();
-    var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
-    var dx=touch.clientX-cx, dy=touch.clientY-cy;
-    var dist=Math.hypot(dx,dy);
-    var clamp=Math.min(dist,R-tR);
-    var nx=dist>0?dx/dist:0, ny=dist>0?dy/dist:0;
-    joystickDx=nx*(clamp/(R-tR)); joystickDy=ny*(clamp/(R-tR));
-    thumb.style.transform='translate(calc(-50% + '+nx*clamp+'px), calc(-50% + '+ny*clamp+'px))';
-  }
-  base.addEventListener('touchstart',function(e){e.preventDefault();var t=e.changedTouches[0];joystickTouchId=t.identifier;updateJoy(t);},{passive:false});
-  base.addEventListener('touchmove',function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++){if(e.changedTouches[i].identifier===joystickTouchId)updateJoy(e.changedTouches[i]);}},{passive:false});
-  base.addEventListener('touchend',function(e){for(var i=0;i<e.changedTouches.length;i++){if(e.changedTouches[i].identifier===joystickTouchId){joystickTouchId=null;joystickDx=0;joystickDy=0;thumb.style.transform='translate(-50%,-50%)';}}},{passive:false});
-  if (bBtn){
-    bBtn.addEventListener('touchstart',function(e){e.preventDefault();boostTouch=true;},{passive:false});
-    bBtn.addEventListener('touchend',function(e){e.preventDefault();boostTouch=false;},{passive:false});
-  }
-})();
-
-function applyJoystick(){
-  if (Math.abs(joystickDy)>0.25) keys['ArrowUp']=joystickDy<-0.25; else delete keys['ArrowUp'];
-  if (joystickDy>0.25) keys['ArrowDown']=true; else delete keys['ArrowDown'];
-  if (Math.abs(joystickDx)>0.25){ keys['ArrowLeft']=joystickDx<-0.25; keys['ArrowRight']=joystickDx>0.25; } else { delete keys['ArrowLeft']; delete keys['ArrowRight']; }
-  if (boostTouch) keys[' ']=true; else delete keys[' '];
-}
-
-// Hook joystick into RAF
-var _rAF=window.requestAnimationFrame;
-window.requestAnimationFrame=function(cb){ return _rAF.call(window,function(t){ applyJoystick(); cb(t); }); };
 
 // ═══════════════════════════════════════════════
 // Auth handled by onAuthStateChanged
