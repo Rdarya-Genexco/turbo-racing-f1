@@ -845,14 +845,13 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 // ⚠️ PASTE YOUR OWN FIREBASE CONFIG HERE ⚠️
 // ════════════════════════════════════════════════
 var firebaseConfig = {
-  apiKey: "AIzaSyAyEudxKZ-1QzZuXyzM__ZpocUavwWVSLk",
-  authDomain: "turbo-racing-633f6.firebaseapp.com",
-  databaseURL: "https://turbo-racing-633f6-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "turbo-racing-633f6",
-  storageBucket: "turbo-racing-633f6.firebasestorage.app",
-  messagingSenderId: "1086647711853",
-  appId: "1:1086647711853:web:8a3836172b39cd14646764",
-  measurementId: "G-V00W9NCZFG"
+  apiKey: "AIzaSyAa0NMCR5e-pmTGEno9oXt90QwiMP_uP3s",
+  authDomain: "quidditch-8c192.firebaseapp.com",
+  databaseURL: "https://quidditch-8c192-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "quidditch-8c192",
+  storageBucket: "quidditch-8c192.appspot.com",
+  messagingSenderId: "209890253986",
+  appId: "1:209890253986:web:quidditch3d"
 };
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
@@ -2509,83 +2508,6 @@ var currentAccount = null; // Firebase User object
 var currentUserDoc = {};   // Firestore data: { points, upgrades, color, displayName, ttBest }
 
 // ═══════════════════════════════════════════════
-// QUIDDITCH3D GOLD BRIDGE — second Firebase app
-// Q3D stores gold inside profiles/{uid}.save (JSON)
-// We read it on login and write back when gold is earned
-// ═══════════════════════════════════════════════
-var Q3D_CONFIG = {
-  apiKey:            'AIzaSyAa0NMCR5e-pmTGEno9oXt90QwiMP_uP3s',
-  authDomain:        'quidditch-8c192.firebaseapp.com',
-  projectId:         'quidditch-8c192',
-  storageBucket:     'quidditch-8c192.appspot.com',
-  messagingSenderId: '209890253986',
-  appId:             '1:209890253986:web:q3d'
-};
-var q3dApp = null;
-var q3dDb  = null;
-(function(){
-  try {
-    if (typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') return;
-    var existing = firebase.apps ? firebase.apps.find(function(a){ return a.name === 'q3d'; }) : null;
-    q3dApp = existing || firebase.initializeApp(Q3D_CONFIG, 'q3d');
-    // compat SDK: pass the named app to firebase.firestore() to get its db
-    q3dDb  = firebase.firestore(q3dApp);
-  } catch(e) {
-    console.warn('Q3D bridge init failed:', e.message);
-  }
-})();
-
-// Q3D gold sync — reads/writes Q3D profiles/{uid} using the user's own auth session.
-// This only works when the user is signed into the SAME Firebase account in both games
-// (same email/password). If the auth session doesn't cover Q3D's project the call is
-// silently skipped — TR gold still works independently.
-function syncQ3DGold(uid, callback){
-  if (!q3dDb || !q3dApp) { if (callback) callback(currentUserDoc.gold || 0); return; }
-  // Use the Q3D app's own auth to get a token — re-sign silently if possible
-  try {
-    var q3dAuth = firebase.auth(q3dApp);
-    var q3dUser = q3dAuth.currentUser;
-    if (!q3dUser){ if (callback) callback(currentUserDoc.gold || 0); return; }
-    q3dDb.collection('profiles').doc(q3dUser.uid).get().then(function(snap){
-      var q3dGold = 0;
-      if (snap.exists){
-        var data = snap.data();
-        try {
-          var save = typeof data.save === 'string' ? JSON.parse(data.save) : (data.save || {});
-          q3dGold = typeof save.gold === 'number' ? save.gold : 0;
-        } catch(e){}
-      }
-      var trGold = currentUserDoc.gold || 0;
-      var merged = Math.max(trGold, q3dGold);
-      if (merged !== trGold){
-        currentUserDoc.gold = merged;
-        if (fsdb) fsdb.collection('users').doc(uid).update({ gold: merged }).catch(function(){});
-      }
-      if (callback) callback(merged);
-    }).catch(function(){ if (callback) callback(currentUserDoc.gold || 0); });
-  } catch(e){ if (callback) callback(currentUserDoc.gold || 0); }
-}
-
-// Write gold back to Q3D after earning it in Turbo Racing
-function pushGoldToQ3D(uid, newGoldTotal){
-  if (!q3dDb || !q3dApp) return;
-  try {
-    var q3dUser = firebase.auth(q3dApp).currentUser;
-    if (!q3dUser) return;
-    q3dDb.collection('profiles').doc(q3dUser.uid).get().then(function(snap){
-      var save = {};
-      if (snap.exists){
-        var data = snap.data();
-        try { save = typeof data.save === 'string' ? JSON.parse(data.save) : (data.save || {}); } catch(e){}
-      }
-      save.gold = newGoldTotal;
-      q3dDb.collection('profiles').doc(q3dUser.uid).set({ save: JSON.stringify(save) }, { merge: true })
-        .catch(function(){});
-    }).catch(function(){});
-  } catch(e){}
-}
-
-// ═══════════════════════════════════════════════
 // ACCOUNT SYSTEM (Firebase Auth + Firestore)
 // ═══════════════════════════════════════════════
 
@@ -2595,7 +2517,7 @@ function addPoints(pts, callback){
   if (!currentAccount) return;
   var newPts = getMyPoints() + pts;
   currentUserDoc.points = newPts;
-  fsdb.collection('users').doc(currentAccount.uid).update({ points: newPts })
+  fsdb.collection('tr_profiles').doc(currentAccount.uid).update({ points: newPts })
     .then(function(){ updatePtsHud(); if(callback) callback(newPts); })
     .catch(function(e){ console.warn('addPoints Firestore error', e); updatePtsHud(); });
   updatePtsHud();
@@ -2615,19 +2537,37 @@ if (auth) auth.onAuthStateChanged(function(user){
   if (user){
     currentAccount = user;
     // Load Firestore doc
-    fsdb.collection('users').doc(user.uid).get().then(function(snap){
+    fsdb.collection('tr_profiles').doc(user.uid).get().then(function(snap){
       if (snap.exists){
         currentUserDoc = snap.data() || {};
       } else {
         // First-time: create doc
         currentUserDoc = { points: 0, upgrades: {}, color: myColor || '#ff4d4d', displayName: user.displayName || user.email, ttBest: null };
-        fsdb.collection('users').doc(user.uid).set(currentUserDoc);
+        fsdb.collection('tr_profiles').doc(user.uid).set(currentUserDoc);
       }
       myName  = currentUserDoc.displayName || user.displayName || user.email.split('@')[0];
       myColor = currentUserDoc.color || myColor || '#ff4d4d';
       applyUpgrades(); updatePtsHud();
-      // Sync gold from Quidditch3D before showing mode screen
-      syncQ3DGold(user.uid, function(){ updateTierHud(); enterModeScreen(); });
+      // Load gold directly from Q3D profiles (same project, same auth)
+      if (fsdb) {
+        fsdb.collection('profiles').doc(user.uid).get().then(function(snap){
+          if (snap.exists){
+            var d = snap.data();
+            try {
+              var q3dSave = typeof d.save === 'string' ? JSON.parse(d.save) : (d.save || {});
+              var q3dGold = typeof q3dSave.gold === 'number' ? q3dSave.gold : 0;
+              var trGold  = currentUserDoc.gold || 0;
+              if (q3dGold > trGold){
+                currentUserDoc.gold = q3dGold;
+                fsdb.collection('tr_profiles').doc(user.uid).update({ gold: q3dGold }).catch(function(){});
+              }
+            } catch(e){}
+          }
+          updateTierHud(); enterModeScreen();
+        }).catch(function(){ updateTierHud(); enterModeScreen(); });
+      } else {
+        updateTierHud(); enterModeScreen();
+      }
     }).catch(function(e){
       console.warn('Firestore load error', e);
       currentUserDoc = {};
@@ -2694,7 +2634,7 @@ function doRegister(){
   auth.createUserWithEmailAndPassword(email, pass)
     .then(function(cred){
       return cred.user.updateProfile({ displayName: username }).then(function(){
-        return fsdb.collection('users').doc(cred.user.uid).set({
+        return fsdb.collection('tr_profiles').doc(cred.user.uid).set({
           points: 0, upgrades: {}, color: myColor, displayName: username, ttBest: null
         });
       });
@@ -2742,7 +2682,7 @@ function buyUpgrade(id){
   currentUserDoc.points = (currentUserDoc.points||0) - cost;
   if (!currentUserDoc.upgrades) currentUserDoc.upgrades = {};
   currentUserDoc.upgrades[id] = level + 1;
-  fsdb.collection('users').doc(currentAccount.uid).update({
+  fsdb.collection('tr_profiles').doc(currentAccount.uid).update({
     points: currentUserDoc.points,
     upgrades: currentUserDoc.upgrades
   }).catch(function(e){ console.warn('buyUpgrade save error', e); });
@@ -2894,7 +2834,7 @@ function recordRaceInHistory(place, pts, time, mode){
   history.unshift(entry);
   if (history.length > 10) history = history.slice(0, 10);
   currentUserDoc.raceHistory = history;
-  if (fsdb) fsdb.collection('users').doc(currentAccount.uid).update({ raceHistory: history }).catch(function(){});
+  if (fsdb) fsdb.collection('tr_profiles').doc(currentAccount.uid).update({ raceHistory: history }).catch(function(){});
 }
 
 function updateLeagueAfterRace(place, ptsEarned){
@@ -2920,7 +2860,7 @@ function updateLeagueAfterRace(place, ptsEarned){
   currentUserDoc.gold          = gold;
 
   // write user doc
-  fsdb.collection('users').doc(currentAccount.uid).update({
+  fsdb.collection('tr_profiles').doc(currentAccount.uid).update({
     careerPts: careerPts, seasonPts: seasonPts, currentSeason: seasonId,
     totalRaces: totalRaces, totalWins: totalWins, gold: gold
   }).catch(function(e){ console.warn('league update error', e); });
@@ -2937,7 +2877,15 @@ function updateLeagueAfterRace(place, ptsEarned){
   if (goldEarned > 0){
     showToast('+' + goldEarned + ' 💎 Gold earned!', 'success');
     // Push updated gold total back to Quidditch3D wallet
-    pushGoldToQ3D(currentAccount.uid, gold);
+    // Push gold back to Q3D profiles (same project)
+    if (fsdb && currentAccount){
+      fsdb.collection('profiles').doc(currentAccount.uid).get().then(function(snap){
+        var save = {};
+        if (snap.exists){ var d=snap.data(); try{ save=typeof d.save==='string'?JSON.parse(d.save):(d.save||{}); }catch(e){} }
+        save.gold = gold;
+        fsdb.collection('profiles').doc(currentAccount.uid).set({ save: JSON.stringify(save) }, { merge:true }).catch(function(){});
+      }).catch(function(){});
+    }
   }
 }
 
@@ -3062,7 +3010,7 @@ showResults = function(){
     var isNewBest = myTime > 0 && (!currentUserDoc.ttBest || myTime < currentUserDoc.ttBest);
     if (isNewBest && currentAccount){
       currentUserDoc.ttBest = myTime;
-      fsdb.collection('users').doc(currentAccount.uid).update({ ttBest: myTime }).catch(function(e){ console.warn('ttBest save error',e); });
+      fsdb.collection('tr_profiles').doc(currentAccount.uid).update({ ttBest: myTime }).catch(function(e){ console.warn('ttBest save error',e); });
     }
     if (ttBanner){
       ttBanner.style.display = 'block';
