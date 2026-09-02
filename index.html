@@ -2727,10 +2727,16 @@ function goToScreen(name){
   if (name === 'race'){
     if (typeof renderer === 'undefined' || !renderer){
       initCanvas();
-    } else if (scene && !isSoloMode){
-      // Multiplayer replay: clear and rebuild scene
+    } else if (scene){
+      // Always clear and rebuild scene so car, road and environment are fresh
+      // (fixes time trial blank scene and stale positions after switching modes)
       while(scene.children.length) scene.remove(scene.children[0]);
+      // Clear car mesh cache so meshes are recreated at correct positions
+      Object.keys(carMeshes).forEach(function(id){ if(scene && carMeshes[id]) scene.remove(carMeshes[id]); });
+      carMeshes = {};
       buildRoad(); buildEnvironment();
+      buildCheckpoints && buildCheckpoints();
+      initFinishPlane && initFinishPlane();
     }
   }
   // host-only elements
@@ -3267,15 +3273,23 @@ var _patchedUpdateAI = function(dt){
 };
 updateAIPlayers = _patchedUpdateAI;
 
-// Patch multiplayer modes to reset isSoloMode
+// Patch multiplayer modes to reset solo state and car position
 var _origCreateRoom = createRoom;
 createRoom = function(){
   isSoloMode=false; gameMode='multiplayer'; isTimeTrial=false;
+  stopRaceLoop && stopRaceLoop();
+  myCar = {x:START_GRID[0].x, y:START_GRID[0].y, angle:0, speed:0, lap:0, progress:0, finished:false, finishTime:0};
+  boostEnergy = BOOST_MAX;
+  carMeshes = {};
   _origCreateRoom();
 };
 var _origJoinRoom = joinRoom;
 joinRoom = function(){
   isSoloMode=false; gameMode='multiplayer'; isTimeTrial=false;
+  stopRaceLoop && stopRaceLoop();
+  myCar = {x:START_GRID[0].x, y:START_GRID[0].y, angle:0, speed:0, lap:0, progress:0, finished:false, finishTime:0};
+  boostEnergy = BOOST_MAX;
+  carMeshes = {};
   _origJoinRoom();
 };
 
