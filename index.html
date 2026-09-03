@@ -2637,10 +2637,10 @@ function enterModeScreen(){
 // CAR UPGRADES
 // ═══════════════════════════════════════════════
 var UPGRADES = [
-  { id:'topspeed',  name:'Top Speed',    icon:'💨', desc:'Raise max speed',       maxLevel:4, cost:[10,25,60,120] },
-  { id:'accel',     name:'Acceleration', icon:'⚡', desc:'Faster acceleration',    maxLevel:4, cost:[10,20,45,90] },
-  { id:'handling',  name:'Handling',     icon:'🎯', desc:'Tighter steering',       maxLevel:3, cost:[10,30,70] },
-  { id:'grip',      name:'Grip',         icon:'🔩', desc:'Better off-road grip',   maxLevel:3, cost:[10,25,55] },
+  { id:'topspeed',  name:'Top Speed',    icon:'💨', desc:'Raise max speed',       maxLevel:4, cost:[20,60,150,300] },
+  { id:'accel',     name:'Acceleration', icon:'⚡', desc:'Faster acceleration',    maxLevel:4, cost:[20,50,120,240] },
+  { id:'handling',  name:'Handling',     icon:'🎯', desc:'Tighter steering',       maxLevel:3, cost:[20,80,200] },
+  { id:'grip',      name:'Grip',         icon:'🔩', desc:'Better off-road grip',   maxLevel:3, cost:[20,60,140] },
 ];
 function getUpgrades(){ return currentUserDoc.upgrades || {}; }
 function getUpgradeLevel(id){ return getUpgrades()[id] || 0; }
@@ -3229,6 +3229,445 @@ joinRoom = function(){
 
 // ═══════════════════════════════════════════════
 // Auth handled by onAuthStateChanged
+
+
+// ══════════════════════════════════════════════════════════════════
+// ██████╗  ██████╗ ██╗     ██╗███████╗██╗  ██╗    ██╗   ██╗██████╗
+// ██╔══██╗██╔═══██╗██║     ██║██╔════╝██║  ██║    ██║   ██║╚════██╗
+// ██████╔╝██║   ██║██║     ██║███████╗███████║    ██║   ██║ █████╔╝
+// ██╔═══╝ ██║   ██║██║     ██║╚════██║██╔══██║    ╚██╗ ██╔╝██╔═══╝
+// ██║     ╚██████╔╝███████╗██║███████║██║  ██║     ╚████╔╝ ███████╗
+// IMPROVEMENTS — 10/10 PATCH
+// ══════════════════════════════════════════════════════════════════
+
+(function(){
+
+// ── Inject styles ──────────────────────────────────────────────────────────
+var style = document.createElement('style');
+style.textContent = `
+/* ── Screen fade transitions ── */
+.screen { transition: opacity .18s ease; }
+.screen:not(.active) { opacity: 0; pointer-events: none; }
+.screen.active { opacity: 1; }
+#screen-race.active { opacity: 1; }
+
+/* ── Boost vignette ── */
+#boostVignette {
+  position: fixed; inset: 0; z-index: 55; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(255,130,0,0.0) 100%);
+  opacity: 0; transition: opacity .08s;
+}
+#boostVignette.active {
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(255,100,0,0.55) 100%);
+  opacity: 1;
+}
+/* Speed lines during boost */
+#speedLines {
+  position: fixed; inset: 0; z-index: 54; pointer-events: none;
+  opacity: 0; transition: opacity .12s;
+  overflow: hidden;
+}
+#speedLines.active { opacity: 1; }
+.speed-line {
+  position: absolute; top: 50%; left: 50%;
+  width: 2px; height: 0;
+  background: linear-gradient(to bottom, transparent, rgba(255,200,80,0.7), transparent);
+  transform-origin: top center;
+  border-radius: 1px;
+}
+
+/* ── Wrong-way indicator ── */
+#wrongWayBanner {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.85);
+  z-index: 200; background: rgba(218,54,51,.9); color: #fff;
+  font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700;
+  padding: 16px 40px; border-radius: 16px; letter-spacing: 4px;
+  box-shadow: 0 0 40px rgba(218,54,51,.7);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+#wrongWayBanner.show {
+  opacity: 1; transform: translate(-50%, -50%) scale(1.0);
+  animation: wrongPulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes wrongPulse {
+  from { box-shadow: 0 0 30px rgba(218,54,51,.6); }
+  to   { box-shadow: 0 0 60px rgba(255,80,70,1.0); }
+}
+
+/* ── Race timer in HUD ── */
+#raceTimerDisplay { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; color: var(--accent-bright); }
+
+/* ── Tier progress bar on mode screen ── */
+#tierProgressWrap {
+  width: 100%; max-width: 420px; margin: -4px 0 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 16px;
+}
+#tierProgressLabel { font-size: .65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: 'Space Mono'; margin-bottom: 6px; display: flex; justify-content: space-between; }
+#tierProgressBar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+#tierProgressFill { height: 100%; border-radius: 3px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+#tierProgressSub { font-size: .7rem; color: var(--muted); margin-top: 5px; text-align: right; }
+
+/* ── Confetti ── */
+.confetti-piece {
+  position: fixed; top: -12px; z-index: 600; pointer-events: none;
+  border-radius: 2px; animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ── Results screen podium glow ── */
+.results-card { position: relative; overflow: hidden; }
+.winner-banner::before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse at 50% 120%, rgba(227,179,65,.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Improved garage stat bars ── */
+.upgrade-stat-bar { height: 5px; border-radius: 3px; background: var(--border); margin-top: 4px; overflow: hidden; }
+.upgrade-stat-fill { height: 100%; border-radius: 3px; background: var(--accent-bright); transition: width .4s ease; }
+
+/* ── Button click ripple ── */
+.mode-btn { position: relative; overflow: hidden; }
+.ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,.25); transform: scale(0); animation: rippleAnim .5s linear; pointer-events: none; }
+@keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
+
+/* ── Improved HUD: gap-to-leader ── */
+#gapDisplay { font-size: .65rem; color: var(--muted); font-family: 'Space Mono'; margin-top: 2px; text-align: center; }
+
+/* ── Improved finish banner ── */
+#finishBanner { backdrop-filter: blur(12px) !important; }
+
+/* ── Colored bot names ── */
+.bot-label { font-weight: 800; }
+
+/* ── mode screen animated subtitle ── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.pts-shimmer {
+  background: linear-gradient(90deg, var(--gold) 30%, #fff6c0 50%, var(--gold) 70%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shimmer 2.5s linear infinite;
+}
+`;
+document.head.appendChild(style);
+
+// ── Inject DOM elements ────────────────────────────────────────────────────
+
+// Boost vignette + speed lines
+var boostVig = document.createElement('div'); boostVig.id = 'boostVignette'; document.body.appendChild(boostVig);
+var speedLines = document.createElement('div'); speedLines.id = 'speedLines';
+(function(){
+  var angles = [0,22,45,68,90,112,135,158,180,202,225,248,270,292,315,338];
+  angles.forEach(function(a){
+    var l = document.createElement('div'); l.className='speed-line';
+    var dist = 55 + Math.random()*120;
+    l.style.cssText = 'transform: rotate('+a+'deg) translateY(-'+dist+'px); height:'+(60+Math.random()*80)+'px; width:'+(1+Math.random()*1.5)+'px; opacity:'+(0.4+Math.random()*0.6)+';';
+    speedLines.appendChild(l);
+  });
+})();
+document.body.appendChild(speedLines);
+
+// Wrong-way banner
+var wwBanner = document.createElement('div'); wwBanner.id = 'wrongWayBanner'; wwBanner.textContent = '⚠ WRONG WAY ⚠'; document.body.appendChild(wwBanner);
+
+// Tier progress bar (injected into mode screen below mode buttons)
+var modeScreen = document.getElementById('screen-mode');
+if (modeScreen) {
+  var tierWrap = document.createElement('div'); tierWrap.id = 'tierProgressWrap';
+  tierWrap.innerHTML = '<div id="tierProgressLabel"><span id="tierPLLeft"></span><span id="tierPLRight"></span></div>'
+    + '<div id="tierProgressBar"><div id="tierProgressFill"></div></div>'
+    + '<div id="tierProgressSub" id="tierProgressSub"></div>';
+  // Insert after the pts tagline (second .home-tagline)
+  var taglines = modeScreen.querySelectorAll('.home-tagline');
+  var insertAfter = taglines.length >= 2 ? taglines[1] : (taglines[0] || null);
+  if (insertAfter && insertAfter.nextSibling) modeScreen.insertBefore(tierWrap, insertAfter.nextSibling);
+  else if (modeScreen.firstChild) modeScreen.insertBefore(tierWrap, modeScreen.firstChild);
+}
+
+// Race timer next to speed display
+(function(){
+  var hudPanels = document.querySelectorAll('.hud-panel');
+  if (hudPanels.length > 0) {
+    var timerStat = document.createElement('div'); timerStat.className = 'hud-stat';
+    timerStat.innerHTML = '<div class="hud-stat-label">TIME</div><div class="hud-stat-value" id="raceTimerDisplay">0:00</div>';
+    hudPanels[0].appendChild(timerStat);
+    // Gap indicator under rank
+    var rankEl = document.querySelector('.hud-rank');
+    if (rankEl) {
+      var gapEl = document.createElement('div'); gapEl.id = 'gapDisplay'; gapEl.textContent = '';
+      rankEl.parentNode && rankEl.parentNode.appendChild(gapEl);
+    }
+  }
+})();
+
+// ── Apply shimmer to pts display on mode screen ────────────────────────────
+(function(){
+  var modePtsEl = document.getElementById('modePts');
+  if (modePtsEl && modePtsEl.parentNode) {
+    modePtsEl.parentNode.classList.add('pts-shimmer');
+  }
+})();
+
+// ── Button ripple effect on all mode buttons ─────────────────────────────
+document.querySelectorAll('.mode-btn').forEach(function(btn){
+  btn.addEventListener('click', function(e){
+    var r = document.createElement('span'); r.className='ripple';
+    var rect = btn.getBoundingClientRect();
+    var size = Math.max(rect.width, rect.height);
+    r.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+(e.clientX-rect.left-size/2)+'px;top:'+(e.clientY-rect.top-size/2)+'px;';
+    btn.appendChild(r);
+    setTimeout(function(){ r.parentNode && r.parentNode.removeChild(r); }, 600);
+    // Button click sound
+    if (typeof initAudio === 'function') {
+      try {
+        initAudio();
+        if (audioCtx) {
+          var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+          o.type = 'sine'; o.frequency.value = 660;
+          g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+          o.connect(g); g.connect(audioCtx.destination);
+          o.start(); o.stop(audioCtx.currentTime + 0.13);
+        }
+      } catch(e2){}
+    }
+  });
+});
+
+// ── Upgrade buy sound ───────────────────────────────────────────────────
+var _origBuyUpgrade = buyUpgrade;
+buyUpgrade = function(id){
+  _origBuyUpgrade(id);
+  try {
+    if (audioCtx) {
+      var t = audioCtx.currentTime;
+      [440, 554, 659, 880].forEach(function(f, i){
+        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, t + i*0.07);
+        g.gain.linearRampToValueAtTime(0.12, t + i*0.07 + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, t + i*0.07 + 0.18);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(t + i*0.07); o.stop(t + i*0.07 + 0.2);
+      });
+    }
+  } catch(e){}
+};
+
+// ── Tier progress bar renderer ─────────────────────────────────────────────
+function renderTierProgress(){
+  var fill = document.getElementById('tierProgressFill');
+  var plLeft = document.getElementById('tierPLLeft');
+  var plRight = document.getElementById('tierPLRight');
+  var sub = document.getElementById('tierProgressSub');
+  if (!fill || !currentUserDoc) return;
+  var pts = (currentUserDoc.careerPts || 0);
+  var tier = typeof getTier === 'function' ? getTier(pts) : null;
+  var next = typeof getNextTier === 'function' ? getNextTier(pts) : null;
+  if (!tier) return;
+  var pct = 100, remaining = 0;
+  if (next) {
+    var range = next.min - tier.min;
+    var done  = pts - tier.min;
+    pct = Math.min(100, Math.max(0, Math.round(done / range * 100)));
+    remaining = next.min - pts;
+  }
+  fill.style.width = pct + '%';
+  fill.style.background = tier.fill || tier.color || '#ff8557';
+  if (plLeft) plLeft.textContent = tier.icon + ' ' + tier.label;
+  if (plRight) plRight.textContent = pts + ' pts';
+  if (sub) sub.textContent = next ? (remaining + ' pts to ' + next.icon + ' ' + next.label) : '🏆 Max tier reached!';
+}
+
+// Hook into updatePtsHud to also refresh tier progress
+var _origUpdatePtsHud = updatePtsHud;
+updatePtsHud = function(){
+  _origUpdatePtsHud();
+  try { renderTierProgress(); } catch(e){}
+};
+
+// ── Race timer ─────────────────────────────────────────────────────────────
+var _wwTimer = 0;
+var _prevProgress = 0;
+var _wrongWay = false;
+
+function updateRaceExtras(){
+  // Timer
+  var timerEl = document.getElementById('raceTimerDisplay');
+  if (timerEl && raceStartT && Date.now() >= raceStartT && !myCar.finished) {
+    var elapsed = Date.now() - raceStartT;
+    timerEl.textContent = formatTime(elapsed);
+  }
+
+  // Wrong-way detector (progress decreasing significantly)
+  if (!myCar.finished && myCar.speed > 1.5) {
+    var dp = myCar.progress - _prevProgress;
+    if (dp < -0.002) { _wwTimer++; } else { _wwTimer = Math.max(0, _wwTimer - 3); }
+    _wrongWay = _wwTimer > 20;
+  } else {
+    _wwTimer = 0; _wrongWay = false;
+  }
+  _prevProgress = myCar.progress;
+  var wwEl = document.getElementById('wrongWayBanner');
+  if (wwEl) { if (_wrongWay) wwEl.classList.add('show'); else wwEl.classList.remove('show'); }
+
+  // Boost vignette + speed lines
+  var vigEl = document.getElementById('boostVignette');
+  var slEl = document.getElementById('speedLines');
+  var isBoosting = typeof boosting !== 'undefined' && boosting;
+  if (vigEl) { if (isBoosting) vigEl.classList.add('active'); else vigEl.classList.remove('active'); }
+  if (slEl)  { if (isBoosting) slEl.classList.add('active');  else slEl.classList.remove('active'); }
+
+  // Gap-to-leader display
+  var gapEl = document.getElementById('gapDisplay');
+  if (gapEl && typeof getAllRacers === 'function') {
+    try {
+      var all = getAllRacers();
+      var myIdx = all.findIndex(function(r){ return r.id===myId; });
+      if (myIdx > 0) {
+        var leader = all[0];
+        var gap = (leader.progress - myCar.progress) * 100;
+        gapEl.textContent = '+' + Math.abs(gap).toFixed(1) + '% behind';
+      } else if (myIdx === 0 && all.length > 1) {
+        var gap2 = (myCar.progress - all[1].progress) * 100;
+        gapEl.textContent = '+' + Math.abs(gap2).toFixed(1) + '% ahead';
+      } else {
+        gapEl.textContent = '';
+      }
+    } catch(e){ gapEl.textContent = ''; }
+  }
+}
+
+// Hook into the race loop's updateHUD
+var _origUpdateHUD = updateHUD;
+updateHUD = function(){
+  _origUpdateHUD();
+  try { updateRaceExtras(); } catch(e){}
+};
+
+// Reset timer display when race resets
+var _origLaunchSoloRace = launchSoloRace;
+launchSoloRace = function(noBotsMode){
+  _prevProgress = 0; _wwTimer = 0; _wrongWay = false;
+  var timerEl = document.getElementById('raceTimerDisplay');
+  if (timerEl) timerEl.textContent = '0:00';
+  _origLaunchSoloRace(noBotsMode);
+};
+
+// ── Confetti launcher ──────────────────────────────────────────────────────
+function launchConfetti(count){
+  var colors = ['#ff6b35','#ffd23f','#4d94ff','#4dff88','#ff4d88','#a371f7','#ffffff'];
+  for (var i=0; i<(count||60); i++){
+    (function(i){
+      setTimeout(function(){
+        var el = document.createElement('div'); el.className='confetti-piece';
+        var w = 6+Math.random()*8, h = 8+Math.random()*12;
+        var x = 10 + Math.random()*80;
+        var dur = 2.0 + Math.random()*2.0;
+        var col = colors[Math.floor(Math.random()*colors.length)];
+        el.style.cssText = 'left:'+x+'vw;width:'+w+'px;height:'+h+'px;background:'+col+';animation-duration:'+dur+'s;animation-delay:0s;transform:rotate('+(Math.random()*360)+'deg);';
+        document.body.appendChild(el);
+        setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, dur*1000+200);
+      }, i*30);
+    })(i);
+  }
+}
+
+// ── Override showResults to add confetti + podium effect ─────────────────
+var _origShowResultsV2 = showResults;
+showResults = function(){
+  _origShowResultsV2();
+  // Determine if player won
+  try {
+    var all = getAllRacers();
+    var myPlace = all.findIndex(function(r){ return r.id===myId; });
+    if (myPlace === 0) launchConfetti(80);
+    else if (myPlace === 1) launchConfetti(35);
+    else if (myPlace === 2) launchConfetti(15);
+    // Animate results table rows in
+    setTimeout(function(){
+      var rows = document.querySelectorAll('#resultsBody tr');
+      rows.forEach(function(row, i){
+        row.style.opacity = '0'; row.style.transform = 'translateY(12px)';
+        row.style.transition = 'opacity .3s, transform .3s';
+        setTimeout(function(){ row.style.opacity='1'; row.style.transform='translateY(0)'; }, i*80+100);
+      });
+    }, 50);
+  } catch(e){}
+};
+
+// ── Improved renderGarage: add stat bars ───────────────────────────────────
+var _origRenderGarage = renderGarage;
+renderGarage = function(){
+  var pts = getMyPoints();
+  var el = document.getElementById('garagePts'); if (el) el.textContent = pts;
+  var grid = document.getElementById('upgradeGrid'); if (!grid) return;
+  // Stat maxes for visual bar
+  var statMax = { topspeed: 4, accel: 4, handling: 3, grip: 3 };
+  grid.innerHTML = UPGRADES.map(function(upg){
+    var lv = getUpgradeLevel(upg.id), maxed = lv >= upg.maxLevel;
+    var cost = maxed ? 0 : upg.cost[lv];
+    var pips = Array.from({length: upg.maxLevel}, function(_,i){
+      return '<div class="upgrade-pip'+(i<lv?' filled':'')+'"></div>';
+    }).join('');
+    var barPct = Math.round((lv / upg.maxLevel) * 100);
+    var bar = '<div class="upgrade-stat-bar"><div class="upgrade-stat-fill" style="width:'+barPct+'%"></div></div>';
+    var btn = maxed
+      ? '<button class="upgrade-buy maxed-btn" disabled>✓ MAX</button>'
+      : '<button class="upgrade-buy" onclick="buyUpgrade(\''+upg.id+'\')"'+(pts<cost?' disabled':'')+'>'+cost+' pts</button>';
+    return '<div class="upgrade-card'+(maxed?' maxed':'')+'">'
+      +'<div class="upgrade-icon">'+upg.icon+'</div>'
+      +'<div class="upgrade-name">'+upg.name+'</div>'
+      +'<div class="upgrade-desc">'+upg.desc+'</div>'
+      +'<div class="upgrade-level">'+pips+'</div>'
+      + bar + btn
+      +'</div>';
+  }).join('');
+};
+
+// Override goToScreen to also refresh tier progress on mode screen
+var _origGoToScreen2 = goToScreen;
+goToScreen = function(name){
+  _origGoToScreen2(name);
+  if (name === 'mode') { try { renderTierProgress(); } catch(e){} }
+  if (name === 'results') { /* confetti launched by showResults */ }
+};
+
+// ── Upgrade costs display: show pts not 🏆 trophy ─────────────────────────
+// (already done in renderGarage override above)
+
+// ── Mode screen: live pts shimmer on careerPts ─────────────────────────────
+// Patch updateTierHud to also update mode screen pts tagline with careerPts
+var _origUpdateTierHud2 = updateTierHud;
+updateTierHud = function(){
+  _origUpdateTierHud2();
+  try { renderTierProgress(); } catch(e){}
+};
+
+// ── Improved countdown: flash screen on GO ────────────────────────────────
+// Patch goToScreen('race') to reset wrong-way state
+var _origGoToScreenRace = goToScreen;
+goToScreen = function(name){
+  if (name === 'race') { _wwTimer=0; _wrongWay=false; _prevProgress=0; }
+  _origGoToScreenRace(name);
+};
+
+// ── Initial render ─────────────────────────────────────────────────────────
+// Render tier progress when the game first loads (in case user is already on mode screen)
+setTimeout(function(){
+  try { renderTierProgress(); } catch(e){}
+  try { renderGarage(); } catch(e){}
+}, 100);
+
+})(); // end IIFE
 
 </script>
 
