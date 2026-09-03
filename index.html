@@ -3081,6 +3081,8 @@ function launchSoloRace(noBotsMode){
   isSoloMode = true;
   amHost = true;
   myId = 'player1';
+  // Ensure myColor is always set (cleared when leaving multiplayer)
+  if (!myColor) myColor = (currentUserDoc && currentUserDoc.color) || '#ff4d4d';
   racePin = 'SOLO_' + Date.now();
 
   cachedPlayers = {};
@@ -3102,13 +3104,7 @@ function launchSoloRace(noBotsMode){
   aiPlayers = {};
 
   applyUpgrades();
-  initFinishPlane();
-
-  // Canvas init is handled by goToScreen('race') — just reset scene for replay
-  if (typeof renderer !== 'undefined' && renderer && scene){
-    while(scene.children.length) scene.remove(scene.children[0]);
-    buildRoad(); buildEnvironment();
-  }
+  // Scene rebuild is handled fully by goToScreen('race') below — don't pre-clear here
   initAIPlayers();
 
   var overlay = document.getElementById('countdownOverlay');
