@@ -2875,7 +2875,7 @@ function updateLeagueAfterRace(place, ptsEarned){
   var tier = getTier(careerPts);
   fsdb.collection('seasons').doc(seasonId).collection('standings').doc(currentAccount.uid).set({
     displayName: myName, color: myColor, tier: tier.id,
-    seasonPts: seasonPts, totalRaces: totalRaces, totalWins: totalWins,
+    seasonPts: seasonPts, careerPts: careerPts, totalRaces: totalRaces, totalWins: totalWins,
     uid: currentAccount.uid, ts: Date.now()
   }).catch(function(e){ console.warn('standings write error', e); });
 
@@ -2990,10 +2990,10 @@ function renderLeagueScreen(){
   loadLeaderboard(seasonId);
 }
 
-// ═══════════════════════════════════════════════
+// ════════════════════════��══════════════════════
 // POINTS SYSTEM OVERRIDE
 // ═══════════════════════════════════════════════
-var PLACE_POINTS = [25, 15, 10, 5];
+// PLACE_POINTS already declared above (line 2440) — no re-declaration needed
 
 // Override showResults
 var _origShowResults = showResults;
@@ -3025,18 +3025,16 @@ showResults = function(){
     }
   } else if (gameMode === 'vsbots' && myPlace >= 0){
     earned = PLACE_POINTS[Math.min(myPlace, PLACE_POINTS.length - 1)];
-    addPoints(earned, function(totalPts){
-      if (earnedBanner){
-        earnedBanner.style.display = 'block';
-        var numEl = document.getElementById('ptsEarnedNum'); if (numEl) numEl.textContent = '+' + earned;
-        var totEl = document.getElementById('ptsTotalNum'); if (totEl) totEl.textContent = totalPts;
-      }
-    });
+    // Show banner immediately with current total; addPoints callback updates it when Firestore confirms
     if (earnedBanner){
       earnedBanner.style.display = 'block';
       var numEl = document.getElementById('ptsEarnedNum'); if (numEl) numEl.textContent = '+' + earned;
       var totEl = document.getElementById('ptsTotalNum'); if (totEl) totEl.textContent = getMyPoints() + earned;
     }
+    addPoints(earned, function(totalPts){
+      // Update banner total once Firestore confirms
+      var totEl2 = document.getElementById('ptsTotalNum'); if (totEl2) totEl2.textContent = totalPts;
+    });
     updateLeagueAfterRace(myPlace, earned);
     recordRaceInHistory(myPlace, earned, myCar ? myCar.finishTime : 0, gameMode);
   }
@@ -3187,8 +3185,7 @@ onMyFinish = function(){
   }
 };
 
-// Patch Firebase sync skips in solo mode
-var _origBeginRaceLoop = beginRaceLoop;
+// Replace race loop: adds solo AI sync and skips Firebase writes in solo mode
 beginRaceLoop = function(){
   if (rafId) return;
   unlockAudio && unlockAudio();
@@ -3223,15 +3220,7 @@ beginRaceLoop = function(){
   rafId=requestAnimationFrame(loop);
 };
 
-// Patch AI Firebase sync
-var _origUpdateAIPlayers = updateAIPlayers;
-updateAIPlayers = function(dt){
-  _origUpdateAIPlayers(dt);
-  // Skip Firebase writes in solo mode (they already happened above via cachedPlayers sync)
-};
-
-// Patch updateAIPlayers to skip db.ref in solo mode (monkey-patch the aiSyncTimer check)
-// We do this by overriding the function body:
+// Full AI update: uses local aiPlayers state, only syncs to Firebase in multiplayer
 var _aiSyncTimer = 0;
 var _patchedUpdateAI = function(dt){
   if (!amHost) return;
