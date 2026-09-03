@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Turbo Racing player profiles ─────────────────────────
+    // Each user can read and write only their own profile.
+    match /tr_profiles/{uid} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid
+                   && request.resource.data.keys().hasOnly([
+                        'points','careerPts','seasonPts','currentSeason',
+                        'totalRaces','totalWins','upgrades','color',
+                        'displayName','ttBest','raceHistory'
+                      ]);
+    }
+
+    // ── Season leaderboard standings ─────────────────────────
+    // Anyone signed in can read standings (public leaderboard).
+    // A user can write only their own standing entry.
+    match /seasons/{seasonId}/standings/{uid} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid
+                   && request.resource.data.keys().hasOnly([
+                        'displayName','color','tier',
+                        'seasonPts','careerPts','totalRaces','totalWins',
+                        'uid','ts'
+                      ]);
+    }
+
+    // ── Quidditch3D profiles (shared project) ────────────────
+    // TR does NOT write to Q3D profiles — read-only to keep
+    // the gold wallet display in sync if re-enabled in future.
+    // For now no TR code reads this collection either; rules
+    // are here for completeness and to deny writes from TR.
+    match /profiles/{uid} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if false; // Q3D app writes this, not TR
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

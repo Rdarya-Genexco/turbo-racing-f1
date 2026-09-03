@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "standings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "seasonPts", "order": "DESCENDING" },
+        { "fieldPath": "ts",        "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

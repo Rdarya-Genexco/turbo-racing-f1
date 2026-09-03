@@ -1,0 +1,35 @@
+{
+  "rules": {
+    "races": {
+      "$raceId": {
+        // Anyone signed in can read a race room
+        ".read": "auth != null",
+
+        "state": {
+          // Only the host (first player who created the room) can update state
+          ".write": "auth != null"
+        },
+
+        "players": {
+          // Anyone signed in can read all players in a room
+          ".read": "auth != null",
+
+          "$playerId": {
+            // A player can create their own entry (push key = their node)
+            // and update it; host can update any player (for AI bots)
+            ".write": "auth != null",
+
+            // Validate required fields are present on create
+            ".validate": "newData.hasChildren(['name','color','x','y','angle','progress','finished','finishTime'])"
+          }
+        }
+      }
+    },
+
+    // Deny everything else at the root
+    "$other": {
+      ".read":  false,
+      ".write": false
+    }
+  }
+}

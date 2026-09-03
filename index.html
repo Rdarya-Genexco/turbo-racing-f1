@@ -618,7 +618,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <div class="home-logo" style="width:60px;height:60px;font-size:1.6rem;margin-bottom:16px">🏎️</div>
   <h1 class="home-title" style="font-size:1.8rem">Turbo Lap</h1>
   <p class="home-tagline" style="margin-bottom:4px">Signed in as <strong id="modeUsername">—</strong> &nbsp;<span id="modeTierBadge" class="tier-badge tier-rookie" style="padding:3px 10px;font-size:.65rem;margin-bottom:0;vertical-align:middle"></span></p>
-  <p class="home-tagline" style="margin-bottom:20px;color:var(--gold);font-family:'Space Mono'">🏆 <span id="modePts">0</span> pts &nbsp;|&nbsp; 💎 <span id="modeGold">0</span> Gold</p>
+  <p class="home-tagline" style="margin-bottom:20px;color:var(--gold);font-family:'Space Mono'">🏆 <span id="modePts">0</span> pts</p>
   <button class="mode-btn primary" onclick="startVsBots()">
     <span class="m-icon">🤖</span>
     <span class="m-text"><span class="m-label">vs Bots</span><span class="m-sub">Race 3 bots · 1st=25 · 2nd=15 · 3rd=10 · 4th=5 pts</span></span>
@@ -670,15 +670,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
   </div>
 
-  <!-- Gold balance -->
-  <div class="gold-card">
-    <div class="gold-icon">💎</div>
-    <div>
-      <div class="gold-amount" id="leagueGoldAmt">0</div>
-      <div class="gold-label">Quidditch3D Gold · shared wallet</div>
-    </div>
-    <div style="margin-left:auto;text-align:right;font-size:.7rem;color:var(--muted)">Earn 1 Gold<br>per 5 race pts</div>
-  </div>
+  <!-- Gold card removed -->
 
   <!-- Season stats -->
   <div class="season-card">
@@ -2548,26 +2540,7 @@ if (auth) auth.onAuthStateChanged(function(user){
       myName  = currentUserDoc.displayName || user.displayName || user.email.split('@')[0];
       myColor = currentUserDoc.color || myColor || '#ff4d4d';
       applyUpgrades(); updatePtsHud();
-      // Load gold directly from Q3D profiles (same project, same auth)
-      if (fsdb) {
-        fsdb.collection('profiles').doc(user.uid).get().then(function(snap){
-          if (snap.exists){
-            var d = snap.data();
-            try {
-              var q3dSave = typeof d.save === 'string' ? JSON.parse(d.save) : (d.save || {});
-              var q3dGold = typeof q3dSave.gold === 'number' ? q3dSave.gold : 0;
-              var trGold  = currentUserDoc.gold || 0;
-              if (q3dGold > trGold){
-                currentUserDoc.gold = q3dGold;
-                fsdb.collection('tr_profiles').doc(user.uid).update({ gold: q3dGold }).catch(function(){});
-              }
-            } catch(e){}
-          }
-          updateTierHud(); enterModeScreen();
-        }).catch(function(){ updateTierHud(); enterModeScreen(); });
-      } else {
-        updateTierHud(); enterModeScreen();
-      }
+      updateTierHud(); enterModeScreen();
     }).catch(function(e){
       console.warn('Firestore load error', e);
       currentUserDoc = {};
@@ -2664,10 +2637,10 @@ function enterModeScreen(){
 // CAR UPGRADES
 // ═══════════════════════════════════════════════
 var UPGRADES = [
-  { id:'topspeed',  name:'Top Speed',    icon:'💨', desc:'Raise max speed',       maxLevel:4, cost:[10,15,25,35] },
-  { id:'accel',     name:'Acceleration', icon:'⚡', desc:'Faster acceleration',    maxLevel:4, cost:[8,12,20,30] },
-  { id:'handling',  name:'Handling',     icon:'🎯', desc:'Tighter steering',       maxLevel:3, cost:[12,20,30] },
-  { id:'grip',      name:'Grip',         icon:'🔩', desc:'Better off-road grip',   maxLevel:3, cost:[8,15,25] },
+  { id:'topspeed',  name:'Top Speed',    icon:'💨', desc:'Raise max speed',       maxLevel:4, cost:[50,100,200,400] },
+  { id:'accel',     name:'Acceleration', icon:'⚡', desc:'Faster acceleration',    maxLevel:4, cost:[40,80,160,320] },
+  { id:'handling',  name:'Handling',     icon:'🎯', desc:'Tighter steering',       maxLevel:3, cost:[60,150,300] },
+  { id:'grip',      name:'Grip',         icon:'🔩', desc:'Better off-road grip',   maxLevel:3, cost:[40,100,200] },
 ];
 function getUpgrades(){ return currentUserDoc.upgrades || {}; }
 function getUpgradeLevel(id){ return getUpgrades()[id] || 0; }
@@ -2773,9 +2746,6 @@ var TIERS = [
   { id:'gold',     label:'Gold',     icon:'🏆', min:700,  max:1499, color:'#e3b341', fill:'#ffd966' },
   { id:'champion', label:'Champion', icon:'👑', min:1500, max:Infinity, color:'#a371f7', fill:'#c99fff' },
 ];
-// Gold is shared with Quidditch3D — 1 Gold per 5 race points
-var GOLD_RATIO = 5;
-
 function getCurrentSeasonId(){
   var now = new Date();
   var yr  = now.getFullYear();
@@ -2814,9 +2784,6 @@ function updateTierHud(){
     badge.textContent = tier.icon + ' ' + tier.label;
     badge.className = 'tier-badge tier-' + tier.id;
   }
-  // gold on mode screen
-  var goldEl = document.getElementById('modeGold');
-  if (goldEl) goldEl.textContent = currentUserDoc.gold || 0;
   // progress bar
   if (next){
     var progress = Math.round(((pts - tier.min) / (next.min - tier.min)) * 100);
@@ -2854,8 +2821,6 @@ function updateLeagueAfterRace(place, ptsEarned){
   }
   var totalRaces = (currentUserDoc.totalRaces || 0) + 1;
   var totalWins  = (currentUserDoc.totalWins  || 0) + (place === 0 ? 1 : 0);
-  var goldEarned = Math.floor(ptsEarned / GOLD_RATIO);
-  var gold = (currentUserDoc.gold || 0) + goldEarned;
 
   // update local
   currentUserDoc.careerPts     = careerPts;
@@ -2863,12 +2828,11 @@ function updateLeagueAfterRace(place, ptsEarned){
   currentUserDoc.currentSeason = seasonId;
   currentUserDoc.totalRaces    = totalRaces;
   currentUserDoc.totalWins     = totalWins;
-  currentUserDoc.gold          = gold;
 
   // write user doc
   fsdb.collection('tr_profiles').doc(currentAccount.uid).update({
     careerPts: careerPts, seasonPts: seasonPts, currentSeason: seasonId,
-    totalRaces: totalRaces, totalWins: totalWins, gold: gold
+    totalRaces: totalRaces, totalWins: totalWins
   }).catch(function(e){ console.warn('league update error', e); });
 
   // write season leaderboard entry
@@ -2880,19 +2844,6 @@ function updateLeagueAfterRace(place, ptsEarned){
   }).catch(function(e){ console.warn('standings write error', e); });
 
   updateTierHud();
-  if (goldEarned > 0){
-    showToast('+' + goldEarned + ' 💎 Gold earned!', 'success');
-    // Push updated gold total back to Quidditch3D wallet
-    // Push gold back to Q3D profiles (same project)
-    if (fsdb && currentAccount){
-      fsdb.collection('profiles').doc(currentAccount.uid).get().then(function(snap){
-        var save = {};
-        if (snap.exists){ var d=snap.data(); try{ save=typeof d.save==='string'?JSON.parse(d.save):(d.save||{}); }catch(e){} }
-        save.gold = gold;
-        fsdb.collection('profiles').doc(currentAccount.uid).set({ save: JSON.stringify(save) }, { merge:true }).catch(function(){});
-      }).catch(function(){});
-    }
-  }
 }
 
 function loadLeaderboard(seasonId){
@@ -2967,10 +2918,6 @@ function renderLeagueScreen(){
     if (nextLabel) nextLabel.textContent = '👑 Max tier reached!';
     if (fill){ fill.style.width = '100%'; fill.style.background = tier.fill; }
   }
-
-  // Gold
-  var goldAmt = document.getElementById('leagueGoldAmt');
-  if (goldAmt) goldAmt.textContent = currentUserDoc.gold || 0;
 
   // Season stats
   var seasonPts = currentUserDoc.currentSeason === seasonId ? (currentUserDoc.seasonPts || 0) : 0;
